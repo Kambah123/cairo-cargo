@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import type { UserRole, User } from '@/types';
 
 export default function StaffManagement() {
-  const { staff, addStaff, updateStaff, logAdminAction } = useData();
+  const { staff, addStaff, updateStaff } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);

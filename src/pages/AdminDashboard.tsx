@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useData } from '@/context/DataContext';
@@ -7,11 +7,11 @@ import StatusBadge from '@/components/StatusBadge';
 import StaffManagement from '@/pages/StaffManagement';
 import {
   LayoutDashboard, Package, TrendingUp, Users, History, ChevronRight, Search,
-  MoreVertical, Edit, Trash2, X, AlertTriangle, Filter, CheckCircle, Download,
-  Ban, ShieldAlert
+  MoreVertical, Edit, Trash2, X, AlertTriangle, CheckCircle, Download,
+  ShieldAlert
 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { Shipment, AdminAction, WeightAlert } from '@/types';
+import type { Shipment } from '@/types';
 
 function Sidebar() {
   const navigate = useNavigate();
@@ -33,7 +33,7 @@ function Sidebar() {
       <nav className="flex-1 p-3 space-y-1">{items.map((item) => (
         <button key={item.path} onClick={() => navigate(item.path)} className={`w-full flex justify-between items-center px-3 py-2.5 rounded-lg text-sm font-medium ${location.pathname === item.path ? 'bg-[#EDF2F7] text-[#1B4332] border-l-[3px] border-[#1B4332]' : 'text-[#4A5568]'}`}>
             <div className="flex items-center gap-3"><item.icon className="w-4 h-4" />{item.label}</div>
-            {item.badge > 0 && <span className="px-2 py-0.5 bg-red-500 text-white text-[10px] rounded-full">{item.badge}</span>}
+            {(item.badge ?? 0) > 0 && <span className="px-2 py-0.5 bg-red-500 text-white text-[10px] rounded-full">{item.badge}</span>}
         </button>
       ))}</nav>
       <div className="p-3 border-t"><button onClick={() => { logout(); navigate('/'); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[#E53E3E]"><History className="w-4 h-4" /> Logout</button></div>
@@ -225,7 +225,7 @@ function AllShipments() {
       } else if (type === 'adjust_balance') {
         const newBalance = selectedShipment.totalAmount - data.paidAmount;
         await logAdminAction({ adminId: user.id, adminName: user.name, shipmentId: selectedShipment.id, actionType: 'adjust_balance', oldValue: selectedShipment.paidAmount.toString(), newValue: data.paidAmount.toString(), reason: data.reason });
-        await updateShipment(selectedShipment.id, { paidAmount: data.paidAmount, balance_due: newBalance });
+        await updateShipment(selectedShipment.id, { paidAmount: data.paidAmount, balanceDue: newBalance });
         toast.success('Adjustment applied');
       } else if (type === 'delete_shipment') {
         await logAdminAction({ adminId: user.id, adminName: user.name, shipmentId: selectedShipment.id, actionType: 'delete_shipment', oldValue: 'exists', newValue: 'deleted', reason: data.reason });

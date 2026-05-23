@@ -1,24 +1,20 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useData } from '@/context/DataContext';
 import { useAuth } from '@/context/AuthContext';
 import {
   Plus, Layers, X,
-  CheckCircle,
   Printer,
   Trash2,
-  FileText,
   Search,
   PlaneTakeoff,
-  PlaneLanding,
   PackageCheck
 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { Batch, Shipment, Destination, ShipmentStatus } from '@/types';
+import type { Batch, Shipment, Destination } from '@/types';
 import DestinationBadge from '@/components/DestinationBadge';
-import StatusBadge from '@/components/StatusBadge';
 
 export default function BatchManager() {
-  const { batches, shipments, addBatch, updateBatch, updateShipment, logAdminAction } = useData();
+  const { batches, shipments, addBatch, updateBatch, updateShipment } = useData();
   const { user } = useAuth();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null);
@@ -59,7 +55,7 @@ export default function BatchManager() {
     const batch = batches.find(b => b.id === batchId);
     if (!batch) return;
     try {
-      await updateShipment(shipment.id, { batchId: undefined as any, status: 'received' });
+      await updateShipment(shipment.id, { batchId: '', status: 'received' });
       await updateBatch(batchId, {
         shipmentCount: Math.max(0, batch.shipmentCount - 1),
         totalWeight: Math.max(0, batch.totalWeight - shipment.weight),
@@ -99,7 +95,6 @@ export default function BatchManager() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Batch List */}
         <div className="lg:col-span-1 space-y-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -130,7 +125,6 @@ export default function BatchManager() {
           </div>
         </div>
 
-        {/* Batch Details / Editor */}
         <div className="lg:col-span-2">
           {selectedBatch ? (
             <div className="bg-white border rounded-2xl flex flex-col h-[700px] shadow-sm overflow-hidden">
@@ -157,7 +151,6 @@ export default function BatchManager() {
                 </div>
               </div>
 
-              {/* Stats Bar */}
               <div className="px-6 py-4 grid grid-cols-3 gap-4 border-b bg-gray-50/50">
                 <div className="text-center">
                     <p className="text-[10px] uppercase font-bold text-gray-400 mb-1">Items</p>
@@ -173,9 +166,7 @@ export default function BatchManager() {
                 </div>
               </div>
 
-              {/* Shipment Lists */}
               <div className="flex-1 overflow-auto p-6 space-y-6">
-                {/* Current Shipments in Batch */}
                 <div className="space-y-3">
                   <h3 className="text-xs font-bold uppercase text-gray-400 flex items-center gap-2">
                     <PackageCheck className="w-3 h-3" /> Shipments in this Batch
@@ -209,7 +200,6 @@ export default function BatchManager() {
                   </div>
                 </div>
 
-                {/* Available for Adding */}
                 {selectedBatch.status === 'open' && (
                   <div className="space-y-3 pt-6 border-t">
                     <div className="flex justify-between items-center">

@@ -3,7 +3,6 @@ import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useData } from '@/context/DataContext';
 import Navbar from '@/components/Navbar';
-import DestinationBadge from '@/components/DestinationBadge';
 import StatusBadge from '@/components/StatusBadge';
 import {
   Plane, CheckCircle, ClipboardList, LogOut, Search, X, Camera, Phone, Banknote, PackageCheck, AlertTriangle, FileText

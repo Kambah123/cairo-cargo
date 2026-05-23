@@ -6,9 +6,9 @@ import Navbar from '@/components/Navbar';
 import StatusBadge from '@/components/StatusBadge';
 import BatchManager from '@/pages/BatchManager';
 import ShipmentTag from '@/components/ShipmentTag';
-import { Plus, List, Layers, LogOut, Camera, Printer, Search, Copy, Edit2, X, Filter, ArrowLeftRight } from 'lucide-react';
+import { Plus, List, Layers, LogOut, Camera, Printer, Search, Copy, Edit2, ArrowLeftRight } from 'lucide-react';
 import { toast } from 'sonner';
-import type { Shipment, Destination, PriorityLabel, ShipmentStatus } from '@/types';
+import type { Shipment, Destination, ShipmentStatus } from '@/types';
 import { supabase } from '@/lib/supabase';
 
 function Sidebar() {
@@ -155,7 +155,7 @@ function CreateShipment({ initialData, onComplete }: { initialData?: Partial<Shi
 }
 
 function MyShipments() {
-  const { shipments, deleteShipment } = useData();
+  const { shipments } = useData();
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<ShipmentStatus | 'all'>('all');

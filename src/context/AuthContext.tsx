@@ -17,7 +17,7 @@ const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const mapProfileToUser = (profile: any): User => ({
     id: profile.id,
@@ -93,7 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     checkUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (_event, session) => {
         if (session?.user) {
           const { data: profile } = await supabase
             .from('profiles')
@@ -118,7 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [resetInactivityTimer]);
 
-  const login = useCallback(async (email: string, password = 'Demo123!', rememberMe = false) => {
+  const login = useCallback(async (email: string, password = 'Demo123!', _rememberMe = false) => {
     try {
       setIsLoading(true);
       
@@ -130,7 +130,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (signInError) throw signInError;
 
       if (signInData.user) {
-        // Fetch IP (mocking for now as browser JS can't easily get it without external service)
         const ipResponse = await fetch('https://api.ipify.org?format=json').catch(() => null);
         const ipData = ipResponse ? await ipResponse.json() : { ip: 'unknown' };
 
