@@ -1,10 +1,10 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { User, UserRole } from '@/types';
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password?: string) => Promise<void>;
+  login: (email: string, password?: string, rememberMe?: boolean) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -12,9 +12,12 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const mapProfileToUser = (profile: any): User => ({
     id: profile.id,
@@ -25,9 +28,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isActive: profile.is_active ?? true,
     phone: profile.phone,
     createdAt: profile.created_at,
+    lastLoginAt: profile.last_login_at,
+    lastLoginIp: profile.last_login_ip,
+    passwordChangedAt: profile.password_changed_at,
   });
 
-  // Check if user is already logged in on mount
+  const logout = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      await supabase.auth.signOut();
+      setUser(null);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const resetInactivityTimer = useCallback(() => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (user) {
+      timeoutRef.current = setTimeout(() => {
+        logout();
+      }, INACTIVITY_TIMEOUT);
+    }
+  }, [user, logout]);
+
+  useEffect(() => {
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+    events.forEach(event => document.addEventListener(event, resetInactivityTimer));
+    return () => {
+      events.forEach(event => document.removeEventListener(event, resetInactivityTimer));
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [resetInactivityTimer]);
+
   useEffect(() => {
     const checkUser = async () => {
       try {
@@ -41,7 +77,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           if (profile && profile.is_active !== false) {
             setUser(mapProfileToUser(profile));
-          } else if (profile && profile.is_active === false) {
+            resetInactivityTimer();
+          } else {
             await supabase.auth.signOut();
             setUser(null);
           }
@@ -55,7 +92,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     checkUser();
 
-    // Subscribe to auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         if (session?.user) {
@@ -67,6 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           if (profile && profile.is_active !== false) {
             setUser(mapProfileToUser(profile));
+            resetInactivityTimer();
           } else {
             setUser(null);
           }
@@ -79,9 +116,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription?.unsubscribe();
     };
-  }, []);
+  }, [resetInactivityTimer]);
 
-  const login = useCallback(async (email: string, password = 'demo-password-123') => {
+  const login = useCallback(async (email: string, password = 'Demo123!', _rememberMe = false) => {
     try {
       setIsLoading(true);
       
@@ -93,6 +130,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (signInError) throw signInError;
 
       if (signInData.user) {
+        const ipResponse = await fetch('https://api.ipify.org?format=json').catch(() => null);
+        const ipData = ipResponse ? await ipResponse.json() : { ip: 'unknown' };
+
+        await supabase.from('profiles').update({
+          last_login_at: new Date().toISOString(),
+          last_login_ip: ipData.ip
+        }).eq('id', signInData.user.id);
+
         const { data: profile } = await supabase
           .from('profiles')
           .select('*')
@@ -105,6 +150,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             throw new Error('Account is deactivated');
           }
           setUser(mapProfileToUser(profile));
+          resetInactivityTimer();
         }
       }
     } catch (error) {
@@ -113,21 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, []);
-
-  const logout = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      setUser(null);
-    } catch (error) {
-      console.error('Logout error:', error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  }, [resetInactivityTimer]);
 
   return (
     <AuthContext.Provider
