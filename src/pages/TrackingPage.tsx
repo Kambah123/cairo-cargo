@@ -22,13 +22,6 @@ export default function TrackingPage() {
     setHasSearched(true);
   };
 
-  const quickTrack = (id: string) => {
-    setTrackingInput(id);
-    const result = getShipmentByTracking(id);
-    setSearchedShipment(result || null);
-    setHasSearched(true);
-  };
-
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
@@ -67,7 +60,7 @@ export default function TrackingPage() {
                 type="text"
                 value={trackingInput}
                 onChange={(e) => setTrackingInput(e.target.value)}
-                placeholder="e.g., KAN-20260521-0010"
+                placeholder="Enter tracking number"
                 className="w-full h-14 pl-4 pr-4 text-base bg-white border border-[#E2E8F0] rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#1B4332] focus:border-transparent transition-all placeholder:text-[#A0AEC0]"
               />
             </div>
@@ -82,21 +75,6 @@ export default function TrackingPage() {
             Tracking numbers start with KAN- or ABU-
           </p>
 
-          {/* Quick track examples */}
-          <div className="flex items-center justify-center gap-2 mb-12">
-            <span className="text-xs text-[#A0AEC0]">Try:</span>
-            {['KAN-20260521-0010', 'ABU-20260521-0005', 'KAN-20260520-0042'].map((id) => (
-              <button
-                key={id}
-                onClick={() => quickTrack(id)}
-                className="text-xs px-2.5 py-1 bg-[#EDF2F7] text-[#4A5568] rounded-md hover:bg-[#E2E8F0] transition-colors"
-              >
-                {id}
-              </button>
-            ))}
-          </div>
-
-          {/* Tracking Result */}
           {hasSearched && (
             <div className="text-left animate-in fade-in slide-in-from-bottom-2 duration-300">
               {searchedShipment ? (
