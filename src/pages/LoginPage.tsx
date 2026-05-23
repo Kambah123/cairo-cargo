@@ -14,15 +14,19 @@ export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
-    // Demo mode: accept any credentials
-    setTimeout(() => {
-      login(username || 'staff_user', selectedRole);
-      setIsLoading(false);
+    try {
+      if (!username) {
+        setError('Please enter a username');
+        setIsLoading(false);
+        return;
+      }
+
+      await login(username, selectedRole);
 
       // Redirect based on role
       const redirectMap: Record<UserRole, string> = {
@@ -31,7 +35,12 @@ export default function LoginPage() {
         admin: '/admin',
       };
       navigate(redirectMap[selectedRole]);
-    }, 500);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Login failed. Please try again.';
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const roles: { value: UserRole; label: string }[] = [

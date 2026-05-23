@@ -1,225 +1,351 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 import type { Shipment, Batch, Destination, ShipmentStatus } from '@/types';
-
-const INITIAL_SHIPMENTS: Shipment[] = [
-  {
-    id: 'KAN-20260521-0010',
-    trackingNumber: 'KAN-20260521-0010',
-    senderName: 'Ahmed Hassan',
-    senderPhone: '+20 101 234 5678',
-    receiverName: 'Musa Ibrahim',
-    receiverPhone: '+234 801 234 5678',
-    destination: 'kano',
-    itemDescription: 'Electronics and clothing items',
-    weight: 18,
-    weightUnit: 'kg',
-    photoUrl: '/package-scale.jpg',
-    priorityLabels: ['express', 'paid'],
-    totalAmount: 250,
-    paidAmount: 250,
-    balanceDue: 0,
-    status: 'shipped',
-    batchId: 'FL-CAR-KNO-250521-A',
-    createdBy: 'cairo_staff_1',
-    createdAt: '2025-05-21T10:30:00Z',
-    updatedAt: '2025-05-21T14:00:00Z',
-  },
-  {
-    id: 'ABU-20260521-0005',
-    trackingNumber: 'ABU-20260521-0005',
-    senderName: 'Fatima Ali',
-    senderPhone: '+20 102 345 6789',
-    receiverName: 'John Okonkwo',
-    receiverPhone: '+234 802 345 6789',
-    destination: 'abuja',
-    itemDescription: 'Home appliances and kitchenware',
-    weight: 32,
-    weightUnit: 'kg',
-    priorityLabels: ['fragile'],
-    totalAmount: 420,
-    paidAmount: 200,
-    balanceDue: 220,
-    status: 'arrived',
-    batchId: 'FL-CAR-ABU-250521-B',
-    createdBy: 'cairo_staff_1',
-    createdAt: '2025-05-21T09:15:00Z',
-    updatedAt: '2025-05-22T08:30:00Z',
-    arrivalConfirmation: {
-      confirmedAt: '2025-05-22T08:30:00Z',
-      confirmedBy: 'nigeria_staff_1',
-      currentWeight: 31.5,
-      conditionNotes: 'All items in good condition',
-    },
-  },
-  {
-    id: 'KAN-20260520-0042',
-    trackingNumber: 'KAN-20260520-0042',
-    senderName: 'Omar Khalil',
-    senderPhone: '+20 103 456 7890',
-    receiverName: 'Amina Yusuf',
-    receiverPhone: '+234 803 456 7890',
-    destination: 'kano',
-    itemDescription: 'Textile fabrics and garments',
-    weight: 45,
-    weightUnit: 'kg',
-    priorityLabels: ['paid'],
-    totalAmount: 380,
-    paidAmount: 380,
-    balanceDue: 0,
-    status: 'delivered',
-    batchId: 'FL-CAR-KNO-200521-A',
-    createdBy: 'cairo_staff_1',
-    createdAt: '2025-05-20T11:00:00Z',
-    updatedAt: '2025-05-22T16:42:00Z',
-    arrivalConfirmation: {
-      confirmedAt: '2025-05-21T10:00:00Z',
-      confirmedBy: 'nigeria_staff_1',
-      currentWeight: 45,
-      conditionNotes: 'Good condition',
-    },
-    deliveryConfirmation: {
-      collectorName: 'Amina Yusuf',
-      collectorPhone: '+234 803 456 7890',
-      deliveredAt: '2025-05-22T16:42:00Z',
-      confirmedBy: 'nigeria_staff_1',
-    },
-  },
-  {
-    id: 'ABU-20260522-0012',
-    trackingNumber: 'ABU-20260522-0012',
-    senderName: 'Sara Mahmoud',
-    senderPhone: '+20 104 567 8901',
-    receiverName: 'Peter Adebayo',
-    receiverPhone: '+234 804 567 8901',
-    destination: 'abuja',
-    itemDescription: 'Books and educational materials',
-    weight: 12,
-    weightUnit: 'kg',
-    priorityLabels: ['express', 'balance_due'],
-    totalAmount: 180,
-    paidAmount: 50,
-    balanceDue: 130,
-    status: 'received',
-    createdBy: 'cairo_staff_1',
-    createdAt: '2025-05-22T08:00:00Z',
-    updatedAt: '2025-05-22T08:00:00Z',
-  },
-  {
-    id: 'KAN-20260522-0015',
-    trackingNumber: 'KAN-20260522-0015',
-    senderName: 'Ibrahim Saleh',
-    senderPhone: '+20 105 678 9012',
-    receiverName: 'Hassan Bello',
-    receiverPhone: '+234 805 678 9012',
-    destination: 'kano',
-    itemDescription: 'Spare auto parts',
-    weight: 28,
-    weightUnit: 'kg',
-    priorityLabels: ['paid'],
-    totalAmount: 310,
-    paidAmount: 310,
-    balanceDue: 0,
-    status: 'awaiting_flight',
-    batchId: 'FL-CAR-KNO-250521-B',
-    createdBy: 'cairo_staff_1',
-    createdAt: '2025-05-22T07:30:00Z',
-    updatedAt: '2025-05-22T12:00:00Z',
-  },
-];
-
-const INITIAL_BATCHES: Batch[] = [
-  {
-    id: 'FL-CAR-KNO-250521-A',
-    destination: 'kano',
-    flightDate: '2025-05-25',
-    status: 'shipped',
-    shipmentCount: 12,
-    createdAt: '2025-05-21T00:00:00Z',
-  },
-  {
-    id: 'FL-CAR-ABU-250521-B',
-    destination: 'abuja',
-    flightDate: '2025-05-25',
-    status: 'shipped',
-    shipmentCount: 8,
-    createdAt: '2025-05-21T00:00:00Z',
-  },
-  {
-    id: 'FL-CAR-KNO-250521-B',
-    destination: 'kano',
-    flightDate: '2025-05-26',
-    status: 'open',
-    shipmentCount: 5,
-    createdAt: '2025-05-22T00:00:00Z',
-  },
-];
 
 interface DataContextType {
   shipments: Shipment[];
   batches: Batch[];
-  addShipment: (shipment: Shipment) => void;
-  updateShipment: (id: string, updates: Partial<Shipment>) => void;
-  updateShipmentStatus: (id: string, status: ShipmentStatus) => void;
-  confirmArrival: (id: string, data: Shipment['arrivalConfirmation']) => void;
-  confirmDelivery: (id: string, data: Shipment['deliveryConfirmation']) => void;
-  addBatch: (batch: Batch) => void;
+  addShipment: (shipment: Shipment) => Promise<void>;
+  updateShipment: (id: string, updates: Partial<Shipment>) => Promise<void>;
+  updateShipmentStatus: (id: string, status: ShipmentStatus) => Promise<void>;
+  confirmArrival: (id: string, data: Shipment['arrivalConfirmation']) => Promise<void>;
+  confirmDelivery: (id: string, data: Shipment['deliveryConfirmation']) => Promise<void>;
+  addBatch: (batch: Batch) => Promise<void>;
   getShipmentsByStatus: (statuses: ShipmentStatus[]) => Shipment[];
   getShipmentsByDestination: (dest: Destination) => Shipment[];
   getShipmentByTracking: (tracking: string) => Shipment | undefined;
   getShipmentsByBatch: (batchId: string) => Shipment[];
+  isLoading: boolean;
 }
 
 const DataContext = createContext<DataContextType | null>(null);
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
-  const [shipments, setShipments] = useState<Shipment[]>(INITIAL_SHIPMENTS);
-  const [batches, setBatches] = useState<Batch[]>(INITIAL_BATCHES);
+  const [shipments, setShipments] = useState<Shipment[]>([]);
+  const [batches, setBatches] = useState<Batch[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const addShipment = useCallback((shipment: Shipment) => {
-    setShipments((prev) => [shipment, ...prev]);
-    setBatches((prev) =>
-      prev.map((b) =>
-        b.id === shipment.batchId
-          ? { ...b, shipmentCount: b.shipmentCount + 1 }
-          : b
+  // Fetch initial data from Supabase
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Fetch batches
+        const { data: batchesData, error: batchesError } = await supabase
+          .from('batches')
+          .select('*');
+
+        if (batchesError) throw batchesError;
+
+        // Fetch shipments
+        const { data: shipmentsData, error: shipmentsError } = await supabase
+          .from('shipments')
+          .select('*');
+
+        if (shipmentsError) throw shipmentsError;
+
+        // Transform data to match types
+        const transformedBatches: Batch[] = (batchesData || []).map((b: any) => ({
+          id: b.id,
+          destination: b.destination,
+          flightDate: b.flight_date,
+          status: b.status,
+          shipmentCount: b.shipment_count,
+          createdAt: b.created_at,
+        }));
+
+        const transformedShipments: Shipment[] = (shipmentsData || []).map((s: any) => ({
+          id: s.id,
+          trackingNumber: s.tracking_number,
+          senderName: s.sender_name,
+          senderPhone: s.sender_phone,
+          receiverName: s.receiver_name,
+          receiverPhone: s.receiver_phone,
+          destination: s.destination,
+          itemDescription: s.item_description,
+          weight: s.weight,
+          weightUnit: s.weight_unit,
+          photoUrl: s.photo_url,
+          priorityLabels: s.priority_labels || [],
+          totalAmount: s.total_amount,
+          paidAmount: s.paid_amount,
+          balanceDue: s.balance_due,
+          status: s.status,
+          batchId: s.batch_id,
+          createdBy: s.created_by,
+          createdAt: s.created_at,
+          updatedAt: s.updated_at,
+          arrivalConfirmation: s.arrival_confirmation,
+          deliveryConfirmation: s.delivery_confirmation,
+        }));
+
+        setBatches(transformedBatches);
+        setShipments(transformedShipments);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+
+    // Subscribe to real-time updates
+    const batchesSubscription = supabase
+      .channel('batches')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'batches' },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newBatch: Batch = {
+              id: payload.new.id,
+              destination: payload.new.destination,
+              flightDate: payload.new.flight_date,
+              status: payload.new.status,
+              shipmentCount: payload.new.shipment_count,
+              createdAt: payload.new.created_at,
+            };
+            setBatches((prev) => [...prev, newBatch]);
+          } else if (payload.eventType === 'UPDATE') {
+            setBatches((prev) =>
+              prev.map((b) =>
+                b.id === payload.new.id
+                  ? {
+                      id: payload.new.id,
+                      destination: payload.new.destination,
+                      flightDate: payload.new.flight_date,
+                      status: payload.new.status,
+                      shipmentCount: payload.new.shipment_count,
+                      createdAt: payload.new.created_at,
+                    }
+                  : b
+              )
+            );
+          } else if (payload.eventType === 'DELETE') {
+            setBatches((prev) => prev.filter((b) => b.id !== payload.old.id));
+          }
+        }
       )
-    );
-  }, []);
+      .subscribe();
 
-  const updateShipment = useCallback((id: string, updates: Partial<Shipment>) => {
-    setShipments((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, ...updates, updatedAt: new Date().toISOString() } : s))
-    );
-  }, []);
-
-  const updateShipmentStatus = useCallback((id: string, status: ShipmentStatus) => {
-    setShipments((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, status, updatedAt: new Date().toISOString() } : s))
-    );
-  }, []);
-
-  const confirmArrival = useCallback((id: string, data: Shipment['arrivalConfirmation']) => {
-    setShipments((prev) =>
-      prev.map((s) =>
-        s.id === id
-          ? { ...s, status: 'arrived' as ShipmentStatus, arrivalConfirmation: data, updatedAt: new Date().toISOString() }
-          : s
+    const shipmentsSubscription = supabase
+      .channel('shipments')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'shipments' },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newShipment: Shipment = {
+              id: payload.new.id,
+              trackingNumber: payload.new.tracking_number,
+              senderName: payload.new.sender_name,
+              senderPhone: payload.new.sender_phone,
+              receiverName: payload.new.receiver_name,
+              receiverPhone: payload.new.receiver_phone,
+              destination: payload.new.destination,
+              itemDescription: payload.new.item_description,
+              weight: payload.new.weight,
+              weightUnit: payload.new.weight_unit,
+              photoUrl: payload.new.photo_url,
+              priorityLabels: payload.new.priority_labels || [],
+              totalAmount: payload.new.total_amount,
+              paidAmount: payload.new.paid_amount,
+              balanceDue: payload.new.balance_due,
+              status: payload.new.status,
+              batchId: payload.new.batch_id,
+              createdBy: payload.new.created_by,
+              createdAt: payload.new.created_at,
+              updatedAt: payload.new.updated_at,
+              arrivalConfirmation: payload.new.arrival_confirmation,
+              deliveryConfirmation: payload.new.delivery_confirmation,
+            };
+            setShipments((prev) => [newShipment, ...prev]);
+          } else if (payload.eventType === 'UPDATE') {
+            setShipments((prev) =>
+              prev.map((s) =>
+                s.id === payload.new.id
+                  ? {
+                      id: payload.new.id,
+                      trackingNumber: payload.new.tracking_number,
+                      senderName: payload.new.sender_name,
+                      senderPhone: payload.new.sender_phone,
+                      receiverName: payload.new.receiver_name,
+                      receiverPhone: payload.new.receiver_phone,
+                      destination: payload.new.destination,
+                      itemDescription: payload.new.item_description,
+                      weight: payload.new.weight,
+                      weightUnit: payload.new.weight_unit,
+                      photoUrl: payload.new.photo_url,
+                      priorityLabels: payload.new.priority_labels || [],
+                      totalAmount: payload.new.total_amount,
+                      paidAmount: payload.new.paid_amount,
+                      balanceDue: payload.new.balance_due,
+                      status: payload.new.status,
+                      batchId: payload.new.batch_id,
+                      createdBy: payload.new.created_by,
+                      createdAt: payload.new.created_at,
+                      updatedAt: payload.new.updated_at,
+                      arrivalConfirmation: payload.new.arrival_confirmation,
+                      deliveryConfirmation: payload.new.delivery_confirmation,
+                    }
+                  : s
+              )
+            );
+          } else if (payload.eventType === 'DELETE') {
+            setShipments((prev) => prev.filter((s) => s.id !== payload.old.id));
+          }
+        }
       )
-    );
+      .subscribe();
+
+    return () => {
+      batchesSubscription.unsubscribe();
+      shipmentsSubscription.unsubscribe();
+    };
   }, []);
 
-  const confirmDelivery = useCallback((id: string, data: Shipment['deliveryConfirmation']) => {
-    setShipments((prev) =>
-      prev.map((s) =>
-        s.id === id
-          ? { ...s, status: 'delivered' as ShipmentStatus, deliveryConfirmation: data, updatedAt: new Date().toISOString() }
-          : s
-      )
-    );
+  const addShipment = useCallback(async (shipment: Shipment) => {
+    try {
+      const { error } = await supabase.from('shipments').insert({
+        id: shipment.id,
+        tracking_number: shipment.trackingNumber,
+        sender_name: shipment.senderName,
+        sender_phone: shipment.senderPhone,
+        receiver_name: shipment.receiverName,
+        receiver_phone: shipment.receiverPhone,
+        destination: shipment.destination,
+        item_description: shipment.itemDescription,
+        weight: shipment.weight,
+        weight_unit: shipment.weightUnit,
+        photo_url: shipment.photoUrl,
+        priority_labels: shipment.priorityLabels,
+        total_amount: shipment.totalAmount,
+        paid_amount: shipment.paidAmount,
+        balance_due: shipment.balanceDue,
+        status: shipment.status,
+        batch_id: shipment.batchId,
+        created_by: shipment.createdBy,
+      });
+
+      if (error) throw error;
+
+      // Update batch shipment count if batch exists
+      if (shipment.batchId) {
+        await supabase
+          .from('batches')
+          .update({ shipment_count: supabase.rpc('increment_shipment_count', { batch_id: shipment.batchId }) })
+          .eq('id', shipment.batchId);
+      }
+    } catch (error) {
+      console.error('Error adding shipment:', error);
+      throw error;
+    }
   }, []);
 
-  const addBatch = useCallback((batch: Batch) => {
-    setBatches((prev) => [...prev, batch]);
+  const updateShipment = useCallback(async (id: string, updates: Partial<Shipment>) => {
+    try {
+      const updateData: any = {};
+      
+      if (updates.senderName) updateData.sender_name = updates.senderName;
+      if (updates.senderPhone) updateData.sender_phone = updates.senderPhone;
+      if (updates.receiverName) updateData.receiver_name = updates.receiverName;
+      if (updates.receiverPhone) updateData.receiver_phone = updates.receiverPhone;
+      if (updates.itemDescription) updateData.item_description = updates.itemDescription;
+      if (updates.weight) updateData.weight = updates.weight;
+      if (updates.weightUnit) updateData.weight_unit = updates.weightUnit;
+      if (updates.photoUrl) updateData.photo_url = updates.photoUrl;
+      if (updates.priorityLabels) updateData.priority_labels = updates.priorityLabels;
+      if (updates.totalAmount) updateData.total_amount = updates.totalAmount;
+      if (updates.paidAmount) updateData.paid_amount = updates.paidAmount;
+      if (updates.balanceDue) updateData.balance_due = updates.balanceDue;
+      if (updates.status) updateData.status = updates.status;
+      if (updates.arrivalConfirmation) updateData.arrival_confirmation = updates.arrivalConfirmation;
+      if (updates.deliveryConfirmation) updateData.delivery_confirmation = updates.deliveryConfirmation;
+
+      updateData.updated_at = new Date().toISOString();
+
+      const { error } = await supabase
+        .from('shipments')
+        .update(updateData)
+        .eq('id', id);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error updating shipment:', error);
+      throw error;
+    }
+  }, []);
+
+  const updateShipmentStatus = useCallback(async (id: string, status: ShipmentStatus) => {
+    try {
+      const { error } = await supabase
+        .from('shipments')
+        .update({
+          status,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error updating shipment status:', error);
+      throw error;
+    }
+  }, []);
+
+  const confirmArrival = useCallback(async (id: string, data: Shipment['arrivalConfirmation']) => {
+    try {
+      const { error } = await supabase
+        .from('shipments')
+        .update({
+          status: 'arrived' as ShipmentStatus,
+          arrival_confirmation: data,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error confirming arrival:', error);
+      throw error;
+    }
+  }, []);
+
+  const confirmDelivery = useCallback(async (id: string, data: Shipment['deliveryConfirmation']) => {
+    try {
+      const { error } = await supabase
+        .from('shipments')
+        .update({
+          status: 'delivered' as ShipmentStatus,
+          delivery_confirmation: data,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error confirming delivery:', error);
+      throw error;
+    }
+  }, []);
+
+  const addBatch = useCallback(async (batch: Batch) => {
+    try {
+      const { error } = await supabase.from('batches').insert({
+        id: batch.id,
+        destination: batch.destination,
+        flight_date: batch.flightDate,
+        status: batch.status,
+        shipment_count: batch.shipmentCount,
+      });
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error adding batch:', error);
+      throw error;
+    }
   }, []);
 
   const getShipmentsByStatus = useCallback(
@@ -257,6 +383,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         getShipmentsByDestination,
         getShipmentByTracking,
         getShipmentsByBatch,
+        isLoading,
       }}
     >
       {children}
