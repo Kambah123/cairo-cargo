@@ -4,19 +4,14 @@ import { useAuth } from '@/context/AuthContext';
 import { useData } from '@/context/DataContext';
 import Navbar from '@/components/Navbar';
 import StatusBadge from '@/components/StatusBadge';
-import DestinationBadge from '@/components/DestinationBadge';
-import PriorityChips from '@/components/PriorityChips';
+import StaffManagement from '@/pages/StaffManagement';
 import {
   LayoutDashboard, Package, CreditCard, LogOut, Search,
-  ArrowUpRight, ArrowDownRight, TrendingUp, MapPin,
-  Download, DollarSign, Activity, CheckCircle, AlertTriangle
+  TrendingUp, Activity, CheckCircle, AlertTriangle,
+  Users, History, X, ShieldAlert, ChevronRight, DollarSign, Edit, Trash2, MoreVertical
 } from 'lucide-react';
 import { toast } from 'sonner';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  LineChart, Line, PieChart, Pie, Cell, Legend
-} from 'recharts';
-
+import type { Shipment } from '@/types';
 
 function Sidebar() {
   const navigate = useNavigate();
@@ -27,20 +22,12 @@ function Sidebar() {
     { label: 'Overview', icon: LayoutDashboard, path: '/admin' },
     { label: 'All Shipments', icon: Package, path: '/admin/shipments' },
     { label: 'Financials', icon: CreditCard, path: '/admin/financials' },
+    { label: 'Staff Management', icon: Users, path: '/admin/staff' },
+    { label: 'Audit Logs', icon: History, path: '/admin/audit' },
   ];
 
   return (
-    <aside className="hidden md:flex w-[280px] flex-col bg-white border-r border-[#E2E8F0] h-screen sticky top-0">
-      <div className="p-4 border-b border-[#E2E8F0]">
-        <div className="flex items-center gap-2">
-          <img src="/logo-icon.png" alt="CargoFlow" className="w-7 h-7" />
-          <div>
-            <span className="font-bold text-[#1B4332] text-sm">CargoFlow</span>
-            <p className="text-[10px] text-[#A0AEC0] uppercase tracking-wide">Admin Dashboard</p>
-          </div>
-        </div>
-      </div>
-
+    <aside className="hidden md:flex w-[280px] flex-col bg-white border-r border-[#E2E8F0] h-[calc(100vh-56px)] sticky top-14">
       <nav className="flex-1 p-3 space-y-1">
         {items.map((item) => {
           const isActive = location.pathname === item.path;
@@ -49,9 +36,7 @@ function Sidebar() {
               key={item.path}
               onClick={() => navigate(item.path)}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                isActive
-                  ? 'bg-[#EDF2F7] text-[#1B4332] border-l-[3px] border-[#1B4332]'
-                  : 'text-[#4A5568] hover:bg-[#EDF2F7]/50 hover:text-[#1A202C]'
+                isActive ? 'bg-[#EDF2F7] text-[#1B4332] border-l-[3px] border-[#1B4332]' : 'text-[#4A5568]'
               }`}
             >
               <item.icon className="w-4 h-4" />
@@ -60,220 +45,88 @@ function Sidebar() {
           );
         })}
       </nav>
-
-      <div className="p-3 border-t border-[#E2E8F0]">
-        <button
-          onClick={() => { logout(); navigate('/'); }}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[#E53E3E] hover:bg-[#FED7D7]/30 transition-colors"
-        >
-          <LogOut className="w-4 h-4" />
-          Logout
-        </button>
+      <div className="p-3 border-t">
+        <button onClick={() => { logout(); navigate('/'); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[#E53E3E]"><LogOut className="w-4 h-4" /> Logout</button>
       </div>
     </aside>
   );
 }
 
 function Overview() {
-  const { shipments, batches } = useData();
-
-  // Stats
+  const { shipments, batches, weightAlerts, resolveWeightAlert } = useData();
+  const { user } = useAuth();
   const today = new Date().toISOString().slice(0, 10);
   const todayShipments = shipments.filter((s) => s.createdAt.startsWith(today));
   const todayRevenue = todayShipments.reduce((sum, s) => sum + s.paidAmount, 0);
   const activeBatches = batches.filter((b) => b.status === 'open').length;
-  const pendingDeliveries = shipments.filter((s) => s.status === 'arrived').length;
+  const pendingAlerts = weightAlerts.filter(a => a.status === 'pending');
 
   const stats = [
     { label: "Today's Shipments", value: todayShipments.length, icon: Package, trend: '+12%', trendUp: true, color: '#1B4332' },
     { label: "Today's Revenue", value: `$${todayRevenue.toFixed(0)}`, icon: DollarSign, trend: '+8%', trendUp: true, color: '#38A169' },
     { label: 'Active Batches', value: activeBatches, icon: Activity, trend: 'Open', trendUp: true, color: '#3182CE' },
-    { label: 'Pending Deliveries', value: pendingDeliveries, icon: MapPin, trend: 'Action needed', trendUp: false, color: '#DD6B20' },
+    { label: 'Weight Alerts', value: pendingAlerts.length, icon: AlertTriangle, trend: 'Action needed', trendUp: false, color: '#DD6B20' },
   ];
-
-  // Chart data - last 7 days
-  const last7Days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (6 - i));
-    return d.toISOString().slice(0, 10);
-  });
-
-  const shipmentChartData = last7Days.map((date) => {
-    const dayShipments = shipments.filter((s) => s.createdAt.startsWith(date));
-    return {
-      date: new Date(date).toLocaleDateString('en', { weekday: 'short' }),
-      Kano: dayShipments.filter((s) => s.destination === 'kano').length,
-      Abuja: dayShipments.filter((s) => s.destination === 'abuja').length,
-    };
-  });
-
-  const weightChartData = last7Days.map((date) => {
-    const dayShipments = shipments.filter((s) => s.createdAt.startsWith(date));
-    return {
-      date: new Date(date).toLocaleDateString('en', { weekday: 'short' }),
-      weight: dayShipments.reduce((sum, s) => sum + s.weight, 0),
-    };
-  });
-
-  // Pie chart - destination distribution
-  const kanoCount = shipments.filter((s) => s.destination === 'kano').length;
-  const abujaCount = shipments.filter((s) => s.destination === 'abuja').length;
-  const pieData = [
-    { name: 'Kano', value: kanoCount, color: '#38A169' },
-    { name: 'Abuja', value: abujaCount, color: '#3182CE' },
-  ];
-
-  // Top routes
-  const routeData = [
-    { route: 'Cairo → Kano', count: kanoCount },
-    { route: 'Cairo → Abuja', count: abujaCount },
-  ];
-
-  // Recent shipments
-  const recentShipments = [...shipments].sort((a, b) =>
-    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  ).slice(0, 10);
 
   return (
-    <div className="max-w-6xl space-y-6">
-      <div>
-        <h1 className="text-[28px] font-bold text-[#1A202C] tracking-tight">Dashboard Overview</h1>
-        <p className="text-[#4A5568] text-[15px]">Real-time cargo operations across all branches</p>
-      </div>
-
-      {/* Stats Cards */}
+    <div className="max-w-6xl space-y-8">
+      <h1 className="text-[28px] font-bold text-[#1A202C]">System Overview</h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat, i) => (
-          <div
-            key={stat.label}
-            className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-5 animate-in fade-in slide-in-from-bottom-2 duration-300"
-            style={{ animationDelay: `${i * 100}ms` }}
-          >
-            <div className="flex items-start justify-between mb-3">
-              <div
-                className="w-10 h-10 rounded-lg flex items-center justify-center"
-                style={{ backgroundColor: stat.color + '15' }}
-              >
+        {stats.map((stat) => (
+          <div key={stat.label} className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${stat.color}15` }}>
                 <stat.icon className="w-5 h-5" style={{ color: stat.color }} />
               </div>
-              <span className={`flex items-center gap-0.5 text-xs font-medium ${stat.trendUp ? 'text-[#38A169]' : 'text-[#DD6B20]'}`}>
-                {stat.trendUp ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                {stat.trend}
-              </span>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${stat.trendUp ? 'bg-[#C6F6D5] text-[#2F855A]' : 'bg-[#FED7D7] text-[#C53030]'}`}>{stat.trend}</span>
             </div>
-            <p className="text-2xl font-bold text-[#1A202C]">{stat.value}</p>
-            <p className="text-xs text-[#A0AEC0] mt-1">{stat.label}</p>
+            <p className="text-2xl font-bold text-[#1A202C] mb-1">{stat.value}</p>
+            <p className="text-xs font-medium text-[#A0AEC0] uppercase">{stat.label}</p>
           </div>
         ))}
       </div>
-
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Bar Chart */}
-        <div className="lg:col-span-2 bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-5">
-          <h3 className="text-sm font-semibold text-[#1A202C] mb-4">Shipments by Destination (Last 7 Days)</h3>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={shipmentChartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-              <XAxis dataKey="date" tick={{ fontSize: 12, fill: '#A0AEC0' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 12, fill: '#A0AEC0' }} axisLine={false} tickLine={false} allowDecimals={false} />
-              <Tooltip
-                contentStyle={{ borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '12px' }}
-              />
-              <Legend wrapperStyle={{ fontSize: '12px' }} />
-              <Bar dataKey="Kano" fill="#38A169" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Abuja" fill="#3182CE" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Pie Chart */}
-        <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-5">
-          <h3 className="text-sm font-semibold text-[#1A202C] mb-4">Destination Distribution</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <PieChart>
-              <Pie
-                data={pieData}
-                cx="50%"
-                cy="50%"
-                innerRadius={50}
-                outerRadius={80}
-                paddingAngle={4}
-                dataKey="value"
-              >
-                {pieData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '12px' }} />
-              <Legend wrapperStyle={{ fontSize: '12px' }} />
-            </PieChart>
-          </ResponsiveContainer>
-
-          {/* Top Routes */}
-          <div className="mt-4 pt-4 border-t border-[#E2E8F0]">
-            <h4 className="text-xs font-medium uppercase tracking-wide text-[#A0AEC0] mb-2">Top Routes</h4>
-            {routeData.map((route) => (
-              <div key={route.route} className="flex items-center justify-between py-1.5">
-                <span className="text-sm text-[#4A5568]">{route.route}</span>
-                <span className="text-sm font-semibold text-[#1A202C]">{route.count} shipments</span>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm overflow-hidden">
+          <div className="p-6 border-b flex items-center justify-between"><h3 className="font-bold flex items-center gap-2"><ShieldAlert className="w-5 h-5 text-[#E53E3E]" /> Pending Alerts</h3></div>
+          <div className="divide-y">
+            {pendingAlerts.length > 0 ? pendingAlerts.map(alert => (
+              <div key={alert.id} className="p-4 flex items-center justify-between hover:bg-[#F8F9FA]">
+                <div><p className="text-sm font-mono font-bold">{alert.trackingNumber}</p><p className="text-xs text-[#718096]">Diff: {alert.discrepancy.toFixed(1)}kg</p></div>
+                <button onClick={() => user && resolveWeightAlert(alert.id, user.id)} className="h-8 px-3 border rounded-lg text-xs font-bold hover:bg-[#1B4332] hover:text-white transition-all">Resolve</button>
               </div>
-            ))}
+            )) : <div className="p-12 text-center text-[#A0AEC0]"><CheckCircle className="w-8 h-8 mx-auto mb-3 opacity-20" /><p className="text-sm">No pending alerts</p></div>}
           </div>
         </div>
+        <div className="bg-white rounded-2xl border p-6"><h3 className="font-bold mb-6">Recent Activity</h3><div className="space-y-4">{shipments.slice(0, 6).map(s => (
+          <div key={s.id} className="flex items-center justify-between"><div className="flex items-center gap-3"><div className="w-2 h-2 rounded-full bg-[#1B4332]" /><div><p className="text-sm font-bold">{s.trackingNumber}</p><p className="text-[10px] uppercase">{s.status}</p></div></div><ChevronRight className="w-4 h-4 text-[#E2E8F0]" /></div>
+        ))}</div></div>
       </div>
+    </div>
+  );
+}
 
-      {/* Weight Trend */}
-      <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-5">
-        <h3 className="text-sm font-semibold text-[#1A202C] mb-4">Weight Trend (Last 7 Days)</h3>
-        <ResponsiveContainer width="100%" height={200}>
-          <LineChart data={weightChartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-            <XAxis dataKey="date" tick={{ fontSize: 12, fill: '#A0AEC0' }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 12, fill: '#A0AEC0' }} axisLine={false} tickLine={false} />
-            <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '12px' }} />
-            <Line type="monotone" dataKey="weight" stroke="#1B4332" strokeWidth={2} dot={{ r: 4, fill: '#1B4332' }} />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Recent Shipments */}
-      <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-[#E2E8F0] flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-[#1A202C]">Recent Shipments</h3>
-          <button
-            onClick={() => {}}
-            className="text-xs text-[#3182CE] hover:text-[#2D6A4F] transition-colors flex items-center gap-1"
-          >
-            View All
-            <TrendingUp className="w-3 h-3" />
-          </button>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-[#F8F9FA]">
-                <th className="text-left text-xs font-medium uppercase tracking-wide text-[#A0AEC0] px-4 py-3">Tracking ID</th>
-                <th className="text-left text-xs font-medium uppercase tracking-wide text-[#A0AEC0] px-4 py-3">Sender</th>
-                <th className="text-left text-xs font-medium uppercase tracking-wide text-[#A0AEC0] px-4 py-3">Destination</th>
-                <th className="text-left text-xs font-medium uppercase tracking-wide text-[#A0AEC0] px-4 py-3">Weight</th>
-                <th className="text-left text-xs font-medium uppercase tracking-wide text-[#A0AEC0] px-4 py-3">Status</th>
-                <th className="text-left text-xs font-medium uppercase tracking-wide text-[#A0AEC0] px-4 py-3">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentShipments.map((s) => (
-                <tr key={s.id} className="border-b border-[#E2E8F0] last:border-0 hover:bg-[#F8F9FA]/50 transition-colors">
-                  <td className="px-4 py-3 font-mono text-sm text-[#1A202C]">{s.trackingNumber}</td>
-                  <td className="px-4 py-3 text-sm text-[#1A202C]">{s.senderName}</td>
-                  <td className="px-4 py-3"><DestinationBadge destination={s.destination} size="sm" /></td>
-                  <td className="px-4 py-3 text-sm text-[#4A5568]">{s.weight}kg</td>
-                  <td className="px-4 py-3"><StatusBadge status={s.status} size="sm" /></td>
-                  <td className="px-4 py-3 text-sm text-[#4A5568]">${s.totalAmount}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+function ShipmentDetailsModal({ shipment, onClose, onAction }: {
+  shipment: Shipment; onClose: () => void; onAction: (type: 'override_status' | 'adjust_balance', data: any) => void;
+}) {
+  const [status, setStatus] = useState(shipment.status);
+  const [paid, setPaid] = useState(shipment.paidAmount.toString());
+  const [reason, setReason] = useState('');
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-xl max-w-2xl w-full overflow-hidden">
+        <div className="p-6 border-b flex justify-between items-center bg-[#1B4332] text-white"><div><h3 className="text-xl font-bold">Admin Controls</h3><p className="text-white/60 text-xs font-mono">{shipment.trackingNumber}</p></div><button onClick={onClose}><X className="w-5 h-5" /></button></div>
+        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+           <div className="space-y-6">
+              <div className="space-y-2"><label className="text-[10px] font-bold text-[#A0AEC0] uppercase">Override Status</label><select value={status} onChange={e => setStatus(e.target.value as any)} className="w-full h-11 border rounded-xl px-3 text-sm"><option value="received">Received</option><option value="awaiting_flight">Awaiting Flight</option><option value="shipped">Shipped</option><option value="arrived">Arrived</option><option value="ready_for_pickup">Ready for Pickup</option><option value="delivered">Delivered</option><option value="on_hold">On Hold</option></select>
+                 <button onClick={() => onAction('override_status', { status, reason })} disabled={status === shipment.status || !reason} className="w-full h-10 bg-[#EDF2F7] rounded-lg text-xs font-bold disabled:opacity-50">Apply Override</button>
+              </div>
+              <div className="space-y-2"><label className="text-[10px] font-bold text-[#A0AEC0] uppercase">Financial Adjustment</label><div className="flex gap-2"><input type="number" value={paid} onChange={e => setPaid(e.target.value)} className="w-full h-11 border rounded-xl px-3 text-sm" /><button onClick={() => onAction('adjust_balance', { paidAmount: parseFloat(paid), reason })} disabled={parseFloat(paid) === shipment.paidAmount || !reason} className="h-11 px-4 bg-[#EDF2F7] rounded-xl text-xs font-bold disabled:opacity-50">Save</button></div></div>
+           </div>
+           <div className="space-y-6">
+              <div className="space-y-2"><label className="text-[10px] font-bold text-red-500 uppercase">Reason (Required)</label><textarea value={reason} onChange={e => setReason(e.target.value)} required rows={4} className="w-full p-4 text-sm border-2 border-red-50 rounded-xl resize-none bg-red-50/30" /></div>
+              <div className="pt-4 space-y-3"><button className="w-full h-12 border text-[#4A5568] text-sm font-bold rounded-xl flex items-center justify-center gap-2"><Edit className="w-4 h-4" /> Edit Details</button><button className="w-full h-12 bg-red-50 text-red-600 text-sm font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-red-600 hover:text-white transition-all"><Trash2 className="w-4 h-4" /> Cancel Shipment</button></div>
+           </div>
         </div>
       </div>
     </div>
@@ -281,256 +134,73 @@ function Overview() {
 }
 
 function AllShipments() {
-  const { shipments } = useData();
-  const [search, setSearch] = useState('');
-  const [filterDest, setFilterDest] = useState<string>('');
-  const [filterStatus, setFilterStatus] = useState<string>('');
-
-  const filtered = shipments.filter((s) => {
-    const matchSearch = !search ||
-      s.trackingNumber.toLowerCase().includes(search.toLowerCase()) ||
-      s.senderName.toLowerCase().includes(search.toLowerCase());
-    const matchDest = !filterDest || s.destination === filterDest;
-    const matchStatus = !filterStatus || s.status === filterStatus;
-    return matchSearch && matchDest && matchStatus;
-  });
-
-  const exportCSV = () => {
-    const headers = ['Tracking Number', 'Sender', 'Receiver', 'Destination', 'Weight', 'Status', 'Total Amount', 'Paid', 'Balance', 'Date'];
-    const rows = filtered.map((s) => [
-      s.trackingNumber, s.senderName, s.receiverName, s.destination,
-      s.weight, s.status, s.totalAmount, s.paidAmount, s.balanceDue,
-      new Date(s.createdAt).toLocaleDateString()
-    ]);
-    const csv = [headers, ...rows].map((r) => r.join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `shipments-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    toast.success('CSV exported successfully');
+  const { shipments, logAdminAction, updateShipment } = useData();
+  const { user } = useAuth();
+  const [filter, setFilter] = useState('');
+  const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
+  const filtered = shipments.filter((s) => s.trackingNumber.toLowerCase().includes(filter.toLowerCase()) || s.senderName.toLowerCase().includes(filter.toLowerCase()));
+  const handleAdminAction = async (type: string, data: any) => {
+    if (!selectedShipment || !user) return;
+    try {
+      if (type === 'override_status') {
+        await logAdminAction({ adminId: user.id, adminName: user.name, shipmentId: selectedShipment.id, actionType: 'override_status', oldValue: selectedShipment.status, newValue: data.status, reason: data.reason });
+        await updateShipment(selectedShipment.id, { status: data.status });
+        toast.success('Override successful');
+      } else if (type === 'adjust_balance') {
+        const newBalance = selectedShipment.totalAmount - data.paidAmount;
+        await logAdminAction({ adminId: user.id, adminName: user.name, shipmentId: selectedShipment.id, actionType: 'adjust_balance', oldValue: selectedShipment.paidAmount.toString(), newValue: data.paidAmount.toString(), reason: data.reason });
+        await updateShipment(selectedShipment.id, { paidAmount: data.paidAmount, balanceDue: newBalance });
+        toast.success('Adjustment applied');
+      }
+      setSelectedShipment(null);
+    } catch { toast.error('Failed'); }
   };
-
   return (
-    <div className="max-w-6xl">
-      <div className="mb-6">
-        <h1 className="text-[28px] font-bold text-[#1A202C] tracking-tight">All Shipments</h1>
-        <p className="text-[#4A5568] text-[15px]">Complete view of all shipments across branches</p>
-      </div>
-
-      {/* Filters */}
-      <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-4 mb-4">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A0AEC0]" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search..."
-              className="w-full h-10 pl-9 pr-3 text-sm border border-[#E2E8F0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4332] placeholder:text-[#A0AEC0]"
-            />
-          </div>
-          <select
-            value={filterDest}
-            onChange={(e) => setFilterDest(e.target.value)}
-            className="h-10 px-3 text-sm border border-[#E2E8F0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4332] bg-white"
-          >
-            <option value="">All Destinations</option>
-            <option value="kano">Kano</option>
-            <option value="abuja">Abuja</option>
-          </select>
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="h-10 px-3 text-sm border border-[#E2E8F0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4332] bg-white"
-          >
-            <option value="">All Statuses</option>
-            <option value="received">Received</option>
-            <option value="awaiting_flight">Awaiting Flight</option>
-            <option value="shipped">Shipped</option>
-            <option value="arrived">Arrived</option>
-            <option value="ready_for_pickup">Ready for Pickup</option>
-            <option value="delivered">Delivered</option>
-          </select>
-          <button
-            onClick={exportCSV}
-            className="h-10 px-4 bg-[#1B4332] text-white text-sm font-medium rounded-lg hover:bg-[#2D6A4F] transition-colors flex items-center gap-2 shrink-0"
-          >
-            <Download className="w-4 h-4" />
-            Export CSV
-          </button>
-        </div>
-      </div>
-
-      {/* Table */}
-      <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-[#F8F9FA] border-b border-[#E2E8F0]">
-                <th className="text-left text-xs font-medium uppercase tracking-wide text-[#A0AEC0] px-4 py-3">Tracking ID</th>
-                <th className="text-left text-xs font-medium uppercase tracking-wide text-[#A0AEC0] px-4 py-3">Sender</th>
-                <th className="text-left text-xs font-medium uppercase tracking-wide text-[#A0AEC0] px-4 py-3">Receiver</th>
-                <th className="text-left text-xs font-medium uppercase tracking-wide text-[#A0AEC0] px-4 py-3">Dest</th>
-                <th className="text-left text-xs font-medium uppercase tracking-wide text-[#A0AEC0] px-4 py-3">Weight</th>
-                <th className="text-left text-xs font-medium uppercase tracking-wide text-[#A0AEC0] px-4 py-3">Status</th>
-                <th className="text-left text-xs font-medium uppercase tracking-wide text-[#A0AEC0] px-4 py-3">Total</th>
-                <th className="text-left text-xs font-medium uppercase tracking-wide text-[#A0AEC0] px-4 py-3">Balance</th>
-                <th className="text-left text-xs font-medium uppercase tracking-wide text-[#A0AEC0] px-4 py-3">Priority</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((s) => (
-                <tr key={s.id} className="border-b border-[#E2E8F0] last:border-0 hover:bg-[#F8F9FA]/50 transition-colors">
-                  <td className="px-4 py-3 font-mono text-sm text-[#1A202C]">{s.trackingNumber}</td>
-                  <td className="px-4 py-3 text-sm text-[#1A202C]">{s.senderName}</td>
-                  <td className="px-4 py-3 text-sm text-[#4A5568]">{s.receiverName}</td>
-                  <td className="px-4 py-3"><DestinationBadge destination={s.destination} size="sm" /></td>
-                  <td className="px-4 py-3 text-sm text-[#4A5568]">{s.weight}kg</td>
-                  <td className="px-4 py-3"><StatusBadge status={s.status} size="sm" /></td>
-                  <td className="px-4 py-3 text-sm text-[#4A5568]">${s.totalAmount}</td>
-                  <td className="px-4 py-3">
-                    <span className={`text-sm font-medium ${s.balanceDue > 0 ? 'text-[#DD6B20]' : 'text-[#38A169]'}`}>
-                      ${s.balanceDue}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3"><PriorityChips labels={s.priorityLabels} size="sm" /></td>
-                </tr>
-              ))}
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-sm text-[#A0AEC0]">
-                    No shipments found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+    <div className="max-w-6xl space-y-6">
+      <div className="flex justify-between items-center"><div><h1 className="text-2xl font-bold">All Shipments</h1></div><div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A0AEC0]" /><input type="text" value={filter} onChange={e => setFilter(e.target.value)} placeholder="Search..." className="h-10 pl-9 pr-4 border rounded-lg w-64" /></div></div>
+      <div className="bg-white border rounded-2xl overflow-hidden"><table className="w-full text-left"><thead className="bg-[#F8F9FA] border-b"><tr><th className="px-6 py-4">Tracking ID</th><th className="px-6 py-4">Details</th><th className="px-6 py-4">Status</th><th className="px-6 py-4 text-right">Actions</th></tr></thead>
+        <tbody className="divide-y">{filtered.map((s) => (
+          <tr key={s.id} className="hover:bg-[#F8F9FA]/50 transition-colors">
+            <td className="px-6 py-4 font-mono font-bold">{s.trackingNumber}</td>
+            <td className="px-6 py-4 text-sm"><p className="font-medium">{s.senderName} → {s.receiverName}</p><p className="text-xs text-[#718096]">{s.weight}kg • {s.destination.toUpperCase()}</p></td>
+            <td className="px-6 py-4"><div className="flex items-center gap-2"><StatusBadge status={s.status} size="sm" />{s.weightAlert && <AlertTriangle className="w-4 h-4 text-[#E53E3E]" />}</div></td>
+            <td className="px-6 py-4 text-right"><button onClick={() => setSelectedShipment(s)} className="p-2 hover:bg-[#EDF2F7] rounded-lg"><MoreVertical className="w-4 h-4" /></button></td>
+          </tr>
+        ))}</tbody></table></div>
+      {selectedShipment && <ShipmentDetailsModal shipment={selectedShipment} onClose={() => setSelectedShipment(null)} onAction={handleAdminAction} />}
     </div>
   );
 }
 
 function Financials() {
   const { shipments } = useData();
-  const [filter, setFilter] = useState<'all' | 'balance_due'>('all');
-
-  const totalRevenue = shipments.reduce((sum, s) => sum + s.totalAmount, 0);
-  const totalCollected = shipments.reduce((sum, s) => sum + s.paidAmount, 0);
-  const totalOutstanding = shipments.reduce((sum, s) => sum + s.balanceDue, 0);
-
-  const filtered = shipments.filter((s) => {
-    if (filter === 'balance_due') return s.balanceDue > 0;
-    return true;
-  });
-
+  const totalRev = shipments.reduce((sum, s) => sum + s.totalAmount, 0);
+  const totalPaid = shipments.reduce((sum, s) => sum + s.paidAmount, 0);
+  const totalDue = shipments.reduce((sum, s) => sum + s.balanceDue, 0);
   return (
-    <div className="max-w-5xl space-y-6">
-      <div>
-        <h1 className="text-[28px] font-bold text-[#1A202C] tracking-tight">Financials</h1>
-        <p className="text-[#4A5568] text-[15px]">Revenue tracking and outstanding balances</p>
+    <div className="max-w-6xl space-y-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+         <div className="bg-[#1B4332] p-8 rounded-3xl text-white"><p className="text-white/60 text-xs font-bold uppercase mb-2">Total Revenue</p><p className="text-4xl font-bold">${totalRev.toLocaleString()}</p><div className="mt-6 flex items-center gap-2 text-white/80 text-sm"><TrendingUp className="w-4 h-4" /><span>Gross earnings</span></div></div>
+         <div className="bg-white p-8 rounded-3xl border"><p className="text-[#A0AEC0] text-xs font-bold uppercase mb-2">Total Collected</p><p className="text-4xl font-bold text-[#38A169]">${totalPaid.toLocaleString()}</p></div>
+         <div className="bg-white p-8 rounded-3xl border"><p className="text-[#A0AEC0] text-xs font-bold uppercase mb-2">Debt</p><p className="text-4xl font-bold text-[#E53E3E]">${totalDue.toLocaleString()}</p></div>
       </div>
+    </div>
+  );
+}
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-5">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 bg-[#EBF8FF] rounded-lg flex items-center justify-center">
-              <DollarSign className="w-4 h-4 text-[#3182CE]" />
-            </div>
-            <span className="text-xs font-medium uppercase tracking-wide text-[#A0AEC0]">Total Revenue</span>
-          </div>
-          <p className="text-2xl font-bold text-[#1A202C]">${totalRevenue.toFixed(2)}</p>
-        </div>
-        <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-5">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 bg-[#C6F6D5] rounded-lg flex items-center justify-center">
-              <CheckCircle className="w-4 h-4 text-[#38A169]" />
-            </div>
-            <span className="text-xs font-medium uppercase tracking-wide text-[#A0AEC0]">Collected</span>
-          </div>
-          <p className="text-2xl font-bold text-[#38A169]">${totalCollected.toFixed(2)}</p>
-        </div>
-        <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-5">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 bg-[#FEEBC8] rounded-lg flex items-center justify-center">
-              <AlertTriangle className="w-4 h-4 text-[#DD6B20]" />
-            </div>
-            <span className="text-xs font-medium uppercase tracking-wide text-[#A0AEC0]">Outstanding</span>
-          </div>
-          <p className="text-2xl font-bold text-[#DD6B20]">${totalOutstanding.toFixed(2)}</p>
-        </div>
-      </div>
-
-      {/* Filter */}
-      <div className="flex gap-2">
-        <button
-          onClick={() => setFilter('all')}
-          className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-            filter === 'all' ? 'bg-[#1B4332] text-white' : 'bg-white text-[#4A5568] border border-[#E2E8F0] hover:bg-[#EDF2F7]'
-          }`}
-        >
-          All Shipments
-        </button>
-        <button
-          onClick={() => setFilter('balance_due')}
-          className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-            filter === 'balance_due' ? 'bg-[#DD6B20] text-white' : 'bg-white text-[#4A5568] border border-[#E2E8F0] hover:bg-[#EDF2F7]'
-          }`}
-        >
-          Balance Due
-        </button>
-      </div>
-
-      {/* Financial Table */}
-      <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-[#F8F9FA] border-b border-[#E2E8F0]">
-                <th className="text-left text-xs font-medium uppercase tracking-wide text-[#A0AEC0] px-4 py-3">Tracking ID</th>
-                <th className="text-left text-xs font-medium uppercase tracking-wide text-[#A0AEC0] px-4 py-3">Customer</th>
-                <th className="text-left text-xs font-medium uppercase tracking-wide text-[#A0AEC0] px-4 py-3">Total Amount</th>
-                <th className="text-left text-xs font-medium uppercase tracking-wide text-[#A0AEC0] px-4 py-3">Paid</th>
-                <th className="text-left text-xs font-medium uppercase tracking-wide text-[#A0AEC0] px-4 py-3">Balance</th>
-                <th className="text-left text-xs font-medium uppercase tracking-wide text-[#A0AEC0] px-4 py-3">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((s) => (
-                <tr key={s.id} className="border-b border-[#E2E8F0] last:border-0 hover:bg-[#F8F9FA]/50 transition-colors">
-                  <td className="px-4 py-3 font-mono text-sm text-[#1A202C]">{s.trackingNumber}</td>
-                  <td className="px-4 py-3 text-sm text-[#1A202C]">{s.senderName}</td>
-                  <td className="px-4 py-3 text-sm font-medium text-[#1A202C]">${s.totalAmount.toFixed(2)}</td>
-                  <td className="px-4 py-3 text-sm text-[#38A169]">${s.paidAmount.toFixed(2)}</td>
-                  <td className="px-4 py-3">
-                    <span className={`text-sm font-semibold ${s.balanceDue > 0 ? 'text-[#DD6B20]' : 'text-[#38A169]'}`}>
-                      ${s.balanceDue.toFixed(2)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    {s.balanceDue > 0 ? (
-                      <span className="px-2 py-0.5 bg-[#FEEBC8] text-[#DD6B20] text-[11px] font-medium rounded">Pending</span>
-                    ) : (
-                      <span className="px-2 py-0.5 bg-[#C6F6D5] text-[#38A169] text-[11px] font-medium rounded">Paid</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-sm text-[#A0AEC0]">
-                    No shipments found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+function AuditLogs() {
+  const { adminActions } = useData();
+  return (
+    <div className="max-w-6xl space-y-6">
+      <div className="bg-white border rounded-2xl overflow-hidden"><table className="w-full text-left"><thead className="bg-[#F8F9FA] border-b"><tr><th className="px-6 py-4">Admin</th><th className="px-6 py-4">Action</th><th className="px-6 py-4">Target</th><th className="px-6 py-4">Reason</th></tr></thead>
+        <tbody className="divide-y">{adminActions.map(log => (
+          <tr key={log.id} className="text-sm">
+            <td className="px-6 py-4 font-bold">{log.adminName}</td>
+            <td className="px-6 py-4 text-xs uppercase font-bold">{log.actionType}</td>
+            <td className="px-6 py-4 font-mono font-bold text-[#1B4332]">{log.shipmentId}</td>
+            <td className="px-6 py-4 text-[#4A5568] italic">"{log.reason}"</td>
+          </tr>
+        ))}</tbody></table></div>
     </div>
   );
 }
@@ -546,6 +216,8 @@ export default function AdminDashboard() {
             <Route path="/" element={<Overview />} />
             <Route path="/shipments" element={<AllShipments />} />
             <Route path="/financials" element={<Financials />} />
+            <Route path="/staff" element={<StaffManagement />} />
+            <Route path="/audit" element={<AuditLogs />} />
           </Routes>
         </main>
       </div>

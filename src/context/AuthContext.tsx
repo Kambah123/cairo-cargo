@@ -4,7 +4,7 @@ import type { User, UserRole } from '@/types';
 
 interface AuthContextType {
   user: User | null;
-  login: (username: string, role: UserRole) => Promise<void>;
+  login: (email: string, password?: string) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -15,6 +15,17 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const mapProfileToUser = (profile: any): User => ({
+    id: profile.id,
+    username: profile.username,
+    name: profile.name,
+    role: profile.role as UserRole,
+    branch: profile.branch || 'all',
+    isActive: profile.is_active ?? true,
+    phone: profile.phone,
+    createdAt: profile.created_at,
+  });
 
   // Check if user is already logged in on mount
   useEffect(() => {
@@ -28,12 +39,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .eq('id', session.user.id)
             .single();
 
-          if (profile) {
-            setUser({
-              username: profile.username,
-              role: profile.role as UserRole,
-              name: profile.name,
-            });
+          if (profile && profile.is_active !== false) {
+            setUser(mapProfileToUser(profile));
+          } else if (profile && profile.is_active === false) {
+            await supabase.auth.signOut();
+            setUser(null);
           }
         }
       } catch (error) {
@@ -55,12 +65,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .eq('id', session.user.id)
             .single();
 
-          if (profile) {
-            setUser({
-              username: profile.username,
-              role: profile.role as UserRole,
-              name: profile.name,
-            });
+          if (profile && profile.is_active !== false) {
+            setUser(mapProfileToUser(profile));
+          } else {
+            setUser(null);
           }
         } else {
           setUser(null);
@@ -73,26 +81,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const login = useCallback(async (username: string, role: UserRole) => {
+  const login = useCallback(async (email: string, password = 'demo-password-123') => {
     try {
       setIsLoading(true);
       
-      // For demo purposes, we'll create a simple email-based login
-      // In production, you'd want proper authentication flow
-      const email = `${username}@cairo-cargo.local`;
-      const password = 'demo-password-123';
-
-      // Try to sign up first
-      const { error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-
-      if (signUpError && signUpError.message !== 'User already registered') {
-        throw signUpError;
-      }
-
-      // Sign in
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -101,23 +93,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (signInError) throw signInError;
 
       if (signInData.user) {
-        // Create or update profile
-        const { error: profileError } = await supabase
+        const { data: profile } = await supabase
           .from('profiles')
-          .upsert({
-            id: signInData.user.id,
-            username,
-            name: username,
-            role,
-          }, { onConflict: 'id' });
+          .select('*')
+          .eq('id', signInData.user.id)
+          .single();
 
-        if (profileError) throw profileError;
-
-        setUser({
-          username,
-          role,
-          name: username,
-        });
+        if (profile) {
+          if (profile.is_active === false) {
+            await supabase.auth.signOut();
+            throw new Error('Account is deactivated');
+          }
+          setUser(mapProfileToUser(profile));
+        }
       }
     } catch (error) {
       console.error('Login error:', error);

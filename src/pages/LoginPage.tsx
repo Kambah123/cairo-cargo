@@ -2,11 +2,10 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import type { UserRole } from '@/types';
-import { Package, MapPin, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { Package, MapPin, ArrowRight, Eye, EyeOff, Mail, Lock } from 'lucide-react';
 
 export default function LoginPage() {
-  const [selectedRole, setSelectedRole] = useState<UserRole>('cairo_staff');
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -20,21 +19,21 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      if (!username) {
-        setError('Please enter a username');
+      if (!email) {
+        setError('Please enter your email');
+        setIsLoading(false);
+        return;
+      }
+      if (!password) {
+        setError('Please enter your password');
         setIsLoading(false);
         return;
       }
 
-      await login(username, selectedRole);
+      await login(email, password);
 
-      // Redirect based on role
-      const redirectMap: Record<UserRole, string> = {
-        cairo_staff: '/cairo',
-        nigeria_staff: '/nigeria',
-        admin: '/admin',
-      };
-      navigate(redirectMap[selectedRole]);
+      // AuthContext handles setting the user, we just need to navigate
+      // We'll use a small delay to ensure user state is updated or check user directly
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Login failed. Please try again.';
       setError(errorMessage);
@@ -43,17 +42,22 @@ export default function LoginPage() {
     }
   };
 
-  const roles: { value: UserRole; label: string }[] = [
-    { value: 'cairo_staff', label: 'Cairo Staff' },
-    { value: 'nigeria_staff', label: 'Nigeria Staff' },
-    { value: 'admin', label: 'Admin' },
-  ];
+  // Effect to navigate based on role once logged in
+  const { user } = useAuth();
+  if (user) {
+    const redirectMap: Record<UserRole, string> = {
+      cairo_staff: '/cairo',
+      kano_staff: '/nigeria',
+      abuja_staff: '/nigeria',
+      admin: '/admin',
+    };
+    navigate(redirectMap[user.role] || '/');
+  }
 
   return (
     <div className="min-h-screen flex">
       {/* Left Panel - Branding */}
       <div className="hidden lg:flex lg:w-[45%] bg-[#1B4332] relative flex-col items-center justify-center p-12 overflow-hidden">
-        {/* Diagonal stripe pattern */}
         <div
           className="absolute inset-0 opacity-10"
           style={{
@@ -72,7 +76,6 @@ export default function LoginPage() {
             Secure access for Cairo and Nigeria operations teams. Manage shipments, track cargo, and confirm deliveries.
           </p>
 
-          {/* Map illustration */}
           <div className="mt-10">
             <img
               src="/map-route.jpg"
@@ -97,47 +100,29 @@ export default function LoginPage() {
       {/* Right Panel - Login Form */}
       <div className="flex-1 flex items-center justify-center p-6 bg-white">
         <div className="w-full max-w-[400px]">
-          {/* Mobile logo */}
           <div className="lg:hidden flex items-center gap-2 mb-8 justify-center">
             <img src="/logo-icon.png" alt="CargoFlow" className="w-8 h-8" />
             <span className="text-[#1B4332] font-bold text-xl">CargoFlow</span>
           </div>
 
           <h1 className="text-[28px] font-bold text-[#1A202C] mb-1 tracking-tight">Staff Login</h1>
-          <p className="text-[#4A5568] text-[15px] mb-6">Select your role and sign in to continue</p>
-
-          {/* Role Selector */}
-          <div className="flex rounded-lg bg-[#EDF2F7] p-1 mb-6">
-            {roles.map((role) => (
-              <button
-                key={role.value}
-                onClick={() => setSelectedRole(role.value)}
-                className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all ${
-                  selectedRole === role.value
-                    ? 'bg-[#1B4332] text-white shadow-sm'
-                    : 'text-[#4A5568] hover:text-[#1A202C]'
-                }`}
-              >
-                {role.label}
-              </button>
-            ))}
-          </div>
+          <p className="text-[#4A5568] text-[15px] mb-8">Sign in with your work email and password</p>
 
           <form onSubmit={handleLogin}>
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-medium uppercase tracking-[0.05em] text-[#4A5568] mb-1.5">
-                  Username
+                  Work Email
                 </label>
                 <div className="relative">
                   <input
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Enter your username"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="name@cairo-cargo.local"
                     className="w-full h-11 pl-10 pr-4 text-sm bg-white border border-[#E2E8F0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4332] focus:border-transparent transition-all placeholder:text-[#A0AEC0]"
                   />
-                  <Package className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A0AEC0]" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A0AEC0]" />
                 </div>
               </div>
 
@@ -150,10 +135,10 @@ export default function LoginPage() {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your password"
+                    placeholder="••••••••"
                     className="w-full h-11 pl-10 pr-10 text-sm bg-white border border-[#E2E8F0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4332] focus:border-transparent transition-all placeholder:text-[#A0AEC0]"
                   />
-                  <Package className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A0AEC0]" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A0AEC0]" />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
@@ -164,7 +149,7 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {error && <p className="text-sm text-[#E53E3E]">{error}</p>}
+              {error && <p className="text-sm text-[#E53E3E] font-medium p-3 bg-red-50 rounded-lg border border-red-100">{error}</p>}
 
               <button
                 type="submit"

@@ -1,4 +1,4 @@
-export type UserRole = 'cairo_staff' | 'nigeria_staff' | 'admin';
+export type UserRole = 'cairo_staff' | 'kano_staff' | 'abuja_staff' | 'admin';
 
 export type Destination = 'kano' | 'abuja';
 
@@ -34,6 +34,7 @@ export interface Shipment {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  weightAlert?: boolean;
   arrivalConfirmation?: {
     confirmedAt: string;
     confirmedBy: string;
@@ -54,13 +55,46 @@ export interface Batch {
   flightDate: string;
   status: 'open' | 'closed' | 'shipped';
   shipmentCount: number;
+  totalWeight: number;
+  totalRevenue: number;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface User {
-  username: string;
-  role: UserRole;
+  id: string;
+  username: string; // Used as login (email)
   name: string;
+  phone?: string;
+  role: UserRole;
+  branch: 'cairo' | 'kano' | 'abuja' | 'all';
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface WeightAlert {
+  id: string;
+  shipmentId: string;
+  trackingNumber: string;
+  initialWeight: number;
+  finalWeight: number;
+  discrepancy: number;
+  status: 'pending' | 'resolved';
+  resolvedBy?: string;
+  resolvedAt?: string;
+  createdAt: string;
+}
+
+export interface AdminAction {
+  id: string;
+  adminId: string;
+  adminName: string;
+  shipmentId: string;
+  actionType: 'override_status' | 'edit_details' | 'delete_shipment' | 'adjust_balance';
+  oldValue?: string;
+  newValue?: string;
+  reason: string;
+  timestamp: string;
 }
 
 export const STATUS_FLOW: ShipmentStatus[] = [
