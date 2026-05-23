@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Package, Menu, X, LogOut, User, ChevronDown } from 'lucide-react';
+import type { UserRole } from '@/types';
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -17,13 +18,18 @@ export default function Navbar() {
     { label: 'Staff Login', href: '/login' },
   ];
 
-  const roleLinks: Record<string, { label: string; href: string }[]> = {
+  const roleLinks: Record<UserRole, { label: string; href: string }[]> = {
     cairo_staff: [
       { label: 'Create Shipment', href: '/cairo' },
       { label: 'My Shipments', href: '/cairo/shipments' },
       { label: 'Batch Manager', href: '/cairo/batches' },
     ],
-    nigeria_staff: [
+    kano_staff: [
+      { label: 'Arrivals', href: '/nigeria' },
+      { label: 'Deliveries', href: '/nigeria/deliveries' },
+      { label: 'Pickup Log', href: '/nigeria/pickups' },
+    ],
+    abuja_staff: [
       { label: 'Arrivals', href: '/nigeria' },
       { label: 'Deliveries', href: '/nigeria/deliveries' },
       { label: 'Pickup Log', href: '/nigeria/pickups' },
@@ -32,6 +38,7 @@ export default function Navbar() {
       { label: 'Dashboard', href: '/admin' },
       { label: 'All Shipments', href: '/admin/shipments' },
       { label: 'Analytics', href: '/admin/analytics' },
+      { label: 'Staff Management', href: '/admin/staff' },
     ],
   };
 
@@ -40,13 +47,11 @@ export default function Navbar() {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-[#E2E8F0] h-14">
       <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
-        {/* Logo */}
         <Link to="/" className="flex items-center gap-2 shrink-0">
           <img src="/logo-icon.png" alt="CargoFlow" className="w-7 h-7" />
           <span className="text-[#1B4332] font-bold text-lg tracking-tight">CargoFlow</span>
         </Link>
 
-        {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-1">
           {links.map((link) => (
             <Link
@@ -63,7 +68,6 @@ export default function Navbar() {
           ))}
         </div>
 
-        {/* Right side */}
         <div className="flex items-center gap-2">
           {isAuthenticated && user ? (
             <div className="relative">
@@ -111,7 +115,6 @@ export default function Navbar() {
             </Link>
           )}
 
-          {/* Mobile hamburger */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             className="md:hidden p-2 rounded-md hover:bg-[#EDF2F7] transition-colors"
@@ -121,7 +124,6 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile drawer */}
       {mobileOpen && (
         <>
           <div className="fixed inset-0 bg-black/40 z-40 md:hidden" onClick={() => setMobileOpen(false)} />
