@@ -1,8 +1,9 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { DataProvider } from '@/context/DataContext';
 import TrackingPage from '@/pages/TrackingPage';
 import LoginPage from '@/pages/LoginPage';
+import ChangePassword from '@/pages/ChangePassword';
 import CairoDashboard from '@/pages/CairoDashboard';
 import NigeriaDashboard from '@/pages/NigeriaDashboard';
 import AdminDashboard from '@/pages/AdminDashboard';
@@ -17,6 +18,7 @@ function RoleGuard({
   allowedRoles: UserRole[];
 }) {
   const { user, isAuthenticated, isLoading } = useAuth();
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -28,6 +30,14 @@ function RoleGuard({
 
   if (!isAuthenticated || !user) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Force password change on first login or after 90 days
+  const isFirstLogin = !user.passwordChangedAt;
+  const passwordAgeDays = user.passwordChangedAt ? (Date.now() - new Date(user.passwordChangedAt).getTime()) / (1000 * 60 * 60 * 24) : 999;
+
+  if ((isFirstLogin || passwordAgeDays > 90) && location.pathname !== '/change-password') {
+    return <Navigate to="/change-password" replace />;
   }
 
   if (!allowedRoles.includes(user.role)) {
@@ -48,6 +58,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<TrackingPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/change-password" element={<ChangePassword />} />
       <Route
         path="/cairo/*"
         element={
