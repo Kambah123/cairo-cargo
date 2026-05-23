@@ -126,7 +126,6 @@ export default function TrackingPage() {
             </button>
           </form>
           <p className="text-[13px] text-[#A0AEC0] mb-8">
-            Tracking numbers start with KAN- or ABU-
           </p>
 
           {/* Tracking Result */}
