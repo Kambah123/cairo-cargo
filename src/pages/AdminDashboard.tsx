@@ -23,7 +23,7 @@ function Sidebar() {
   const items = [
     { label: 'Overview', icon: LayoutDashboard, path: '/admin' },
     { label: 'All Shipments', icon: Package, path: '/admin/shipments' },
-    { label: 'Financials', icon: TrendingUp, path: '/admin/financials' },
+
     { label: 'Weight Alerts', icon: ShieldAlert, path: '/admin/alerts', badge: pendingAlerts },
     { label: 'Staff Management', icon: Users, path: '/admin/staff' },
     { label: 'Audit Logs', icon: History, path: '/admin/audit' },
@@ -77,7 +77,7 @@ function Overview() {
             </div>
             <div className="flex justify-between items-center pt-6 border-t border-white/10">
                 <div><p className="text-white/40 text-[10px] font-bold uppercase">Total Revenue</p><p className="text-2xl font-bold">$14,250</p></div>
-                <button className="h-10 px-4 bg-white text-[#1B4332] font-bold text-xs rounded-xl">View Report</button>
+
             </div>
         </div>
       </div>
@@ -391,7 +391,7 @@ export default function AdminDashboard() {
           <Routes>
             <Route path="/" element={<Overview />} />
             <Route path="/shipments" element={<AllShipments />} />
-            <Route path="/financials" element={<Financials />} />
+
             <Route path="/staff" element={<StaffManagement />} />
             <Route path="/alerts" element={<WeightAlerts />} />
             <Route path="/audit" element={<AuditLogs />} />

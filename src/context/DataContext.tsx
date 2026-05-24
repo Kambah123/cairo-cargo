@@ -125,15 +125,30 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         batchId: a.batch_id, actionType: a.action_type, oldValue: a.old_value, newValue: a.new_value,
         reason: a.reason, timestamp: a.timestamp,
       })));
-    } catch (error) {
+    } catch (error: any) {
       console.error('Data Fetch Error:', error);
+      // If we get a schema or permission error, don't crash the app
+      if (error.message?.includes('schema') || error.code === '42P01') {
+        console.warn('Database schema issue detected. Please run SCHEMA_UPDATES.sql in Supabase.');
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
+    // Only fetch data if the user is authenticated
+    // This prevents "Database error querying schema" errors on the login page
+    const checkAuthAndFetch = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        fetchData();
+      } else {
+        setIsLoading(false);
+      }
+    };
+
+    checkAuthAndFetch();
 
     const shipmentSub = supabase
       .channel('shipments-changes')
