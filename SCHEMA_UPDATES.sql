@@ -1,7 +1,20 @@
 -- 1. Update User Roles
 -- Note: Run these outside of a transaction if your Postgres version requires it.
-ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'kano_staff';
-ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'abuja_staff';
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
+        CREATE TYPE user_role AS ENUM ('admin', 'cairo_staff', 'kano_staff', 'abuja_staff');
+    ELSE
+        BEGIN
+            ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'kano_staff';
+        EXCEPTION WHEN OTHERS THEN NULL;
+        END;
+        BEGIN
+            ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'abuja_staff';
+        EXCEPTION WHEN OTHERS THEN NULL;
+        END;
+    END IF;
+END $$;
 
 -- 2. Enhance Profiles Table
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS branch TEXT DEFAULT 'all';
@@ -48,12 +61,20 @@ CREATE TABLE IF NOT EXISTS admin_actions (
 ALTER TABLE weight_alerts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE admin_actions ENABLE ROW LEVEL SECURITY;
 
--- Policy: Admins can do everything
-CREATE POLICY "Admin full access weight_alerts" ON weight_alerts FOR ALL USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin'));
-CREATE POLICY "Admin full access admin_actions" ON admin_actions FOR ALL USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin'));
+-- Policy Cleanup and Creation
+DO $$ 
+BEGIN
+    -- Weight Alerts Policies
+    DROP POLICY IF EXISTS "Admin full access weight_alerts" ON weight_alerts;
+    CREATE POLICY "Admin full access weight_alerts" ON weight_alerts FOR ALL USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin'));
 
--- Policy: Nigeria staff can see alerts for their branch
-CREATE POLICY "Staff view weight_alerts" ON weight_alerts FOR SELECT USING (true);
+    DROP POLICY IF EXISTS "Staff view weight_alerts" ON weight_alerts;
+    CREATE POLICY "Staff view weight_alerts" ON weight_alerts FOR SELECT USING (true);
+
+    -- Admin Actions Policies
+    DROP POLICY IF EXISTS "Admin full access admin_actions" ON admin_actions;
+    CREATE POLICY "Admin full access admin_actions" ON admin_actions FOR ALL USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin'));
+END $$;
 
 -- 8. Storage Bucket
 -- Ensure you create a public bucket named 'cargo-photos' in the Supabase Dashboard.
