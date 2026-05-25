@@ -7,7 +7,7 @@ import StatusBadge from '@/components/StatusBadge';
 import StaffManagement from '@/pages/StaffManagement';
 import {
   LayoutDashboard, Package, TrendingUp, Users, History, ChevronRight, Search,
-  MoreVertical, Edit, Trash2, X, AlertTriangle, CheckCircle, Download,
+  MoreVertical, Edit, Trash2, X, AlertTriangle, CheckCircle,
   ShieldAlert
 } from 'lucide-react';
 import { toast } from 'sonner';
