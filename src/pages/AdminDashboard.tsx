@@ -289,50 +289,7 @@ function AllShipments() {
   );
 }
 
-function Financials() {
-  const { shipments } = useData();
-  const totalRev = shipments.reduce((sum, s) => sum + s.totalAmount, 0);
-  const totalPaid = shipments.reduce((sum, s) => sum + s.paidAmount, 0);
-  const totalDue = shipments.reduce((sum, s) => sum + s.balanceDue, 0);
 
-  const exportCSV = () => {
-      const headers = ['Tracking', 'Sender', 'Receiver', 'Total', 'Paid', 'Due', 'Status', 'Date'];
-      const rows = shipments.map(s => [s.trackingNumber, s.senderName, s.receiverName, s.totalAmount, s.paidAmount, s.balanceDue, s.status, new Date(s.createdAt).toLocaleDateString()]);
-      const content = [headers, ...rows].map(e => e.join(',')).join('\n');
-      const blob = new Blob([content], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `financial_report_${new Date().toISOString().slice(0, 10)}.csv`;
-      a.click();
-  };
-
-  return (
-    <div className="max-w-6xl space-y-8">
-      <div className="flex justify-between items-center">
-          <div><h1 className="text-2xl font-bold">Revenue & Financials</h1><p className="text-sm text-gray-500">Live collection tracking</p></div>
-          <button onClick={exportCSV} className="h-11 px-6 bg-[#1B4332] text-white font-bold rounded-2xl flex items-center gap-2 shadow-lg"><Download className="w-4 h-4" /> Export Ledger (CSV)</button>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-         <div className="bg-[#1B4332] p-10 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden">
-            <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/5 rounded-full" />
-            <p className="text-white/60 text-xs font-bold uppercase mb-2 tracking-widest">Total Revenue</p>
-            <p className="text-5xl font-bold font-mono tracking-tight">${totalRev.toLocaleString()}</p>
-            <div className="mt-8 flex items-center gap-2 text-white/80 text-sm font-medium"><TrendingUp className="w-4 h-4" /><span>+12% from last month</span></div>
-         </div>
-         <div className="bg-white p-10 rounded-[2.5rem] border shadow-sm border-gray-100 flex flex-col justify-between">
-            <div><p className="text-[#A0AEC0] text-xs font-bold uppercase mb-2 tracking-widest">Collections</p><p className="text-5xl font-bold text-[#38A169] font-mono">${totalPaid.toLocaleString()}</p></div>
-            <div className="w-full bg-gray-100 h-2 rounded-full mt-8 overflow-hidden"><div style={{ width: `${(totalPaid/totalRev)*100}%` }} className="bg-[#38A169] h-full" /></div>
-         </div>
-         <div className="bg-white p-10 rounded-[2.5rem] border shadow-sm border-gray-100 flex flex-col justify-between">
-            <div><p className="text-[#A0AEC0] text-xs font-bold uppercase mb-2 tracking-widest">Outstanding</p><p className="text-5xl font-bold text-[#E53E3E] font-mono">${totalDue.toLocaleString()}</p></div>
-            <button className="text-[10px] font-bold text-red-500 uppercase tracking-widest hover:underline mt-8">View Debtors List</button>
-         </div>
-      </div>
-    </div>
-  );
-}
 
 function AuditLogs() {
   const { adminActions } = useData();
