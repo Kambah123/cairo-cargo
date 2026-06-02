@@ -202,7 +202,7 @@ The system tracks shipments through a granular lifecycle to ensure operational p
 - **Role-Based Navigation**:
   - **Cairo Staff**: Focused on intake, photo verification, and batching.
   - **Nigeria Staff**: Focused on arrivals, delivery confirmation, and cash collection.
-  - **Admin**: Full visibility, analytics, and override capabilities.
+  - **Admin**: Full visibility, analytics, override capabilities, and **new shipment registration**.
 
 ## 30. TECHNICAL SPECIFICATIONS (PRINTING & MEDIA)
 - **Label Format**: All parcel tags and sack labels are designed for **A6 (4x6 inch)** printable thermal stickers.

@@ -35,6 +35,7 @@ export default function Navbar() {
       { label: 'Pickup Log', href: '/nigeria/pickups' },
     ],
     admin: [
+      { label: 'New Shipment', href: '/admin/new-shipment' },
       { label: 'Dashboard', href: '/admin' },
       { label: 'All Shipments', href: '/admin/shipments' },
       { label: 'Analytics', href: '/admin/analytics' },
