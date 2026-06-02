@@ -37,7 +37,7 @@ function Sidebar() {
     { label: 'Audit Trail', icon: History, path: '/admin/audit' },
   ];
   return (
-    <aside className="hidden md:flex w-[280px] flex-col bg-[#0F172A] border-r border-white/5 h-[calc(100vh-56px)] sticky top-14">
+    <aside className="hidden md:flex w-[280px] flex-col bg-[#0F172A] border-r border-white/5 h-[calc(100vh-64px)] sticky top-16">
       <nav className="flex-1 p-4 space-y-2">
         {items.map((item) => (
           <button
@@ -63,22 +63,24 @@ function Sidebar() {
   );
 }
 
-function StatCard({ label, value, icon: Icon, color, trend, trendValue }: any) {
+function StatCard({ label, value, icon: Icon, color, trend, trendValue }: { label: string; value: string | number; icon: any; color: string; trend?: "up" | "down"; trendValue?: string | number }) {
     return (
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-100 dark:border-white/5 shadow-sm hover:shadow-xl transition-all duration-300 group">
-            <div className="flex justify-between items-start mb-4">
-                <div className={`p-4 rounded-2xl ${color} text-white shadow-lg group-hover:scale-110 transition-transform`}>
-                    <Icon className="w-6 h-6" />
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-[16px] border border-slate-100 dark:border-white/5 shadow-sm flex flex-col justify-between max-h-[120px]">
+            <div className="flex justify-between items-start mb-2">
+                <div className={`p-2 rounded-lg ${color} text-white`}>
+                    <Icon className="w-4 h-4" />
                 </div>
                 {trend && (
-                    <div className={`flex items-center gap-1 text-[10px] font-black px-2 py-1 rounded-full ${trend === 'up' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+                    <div className={`flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${trend === 'up' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
                         {trend === 'up' ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
                         {trendValue}%
                     </div>
                 )}
             </div>
-            <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">{label}</p>
-            <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">{value}</p>
+            <div>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">{value}</p>
+                <p className="text-[11px] font-medium text-slate-500 truncate">{label}</p>
+            </div>
         </div>
     );
 }
@@ -101,36 +103,36 @@ function Overview() {
   ];
 
   return (
-    <div className="space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+    <div className="space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700 px-4 md:px-0">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5">
         <div>
-            <h1 className="text-4xl font-black tracking-tighter text-slate-900 dark:text-white uppercase">Operational Hub</h1>
-            <p className="text-slate-400 font-bold">Real-time logistics intelligence & terminal control</p>
+            <h1 className="text-[28px] md:text-[36px] font-black tracking-tighter text-slate-900 dark:text-white">Operational Hub</h1>
+            <p className="text-slate-400 font-medium">Real-time logistics management</p>
         </div>
-        <div className="flex flex-wrap gap-3">
-            <button onClick={() => navigate('/admin/new-shipment')} className="h-14 px-6 bg-blue-600 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-blue-600/20 active:scale-95 transition-all flex items-center gap-2 text-xs">
+        <div className="grid grid-cols-1 min-[400px]:grid-cols-2 lg:flex w-full lg:w-auto gap-3">
+            <button onClick={() => navigate('/admin/new-shipment')} className="h-[72px] px-4 bg-blue-600 text-white font-semibold rounded-[16px] shadow-sm active:scale-95 transition-all flex items-center gap-3 text-sm w-full justify-start lg:w-auto">
                 <Plus className="w-4 h-4" /> New Parcel
             </button>
-            <button onClick={() => navigate('/admin/sacks')} className="h-14 px-6 bg-slate-900 dark:bg-white dark:text-slate-900 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl active:scale-95 transition-all flex items-center gap-2 text-xs">
+            <button onClick={() => navigate('/admin/sacks')} className="h-[72px] px-4 bg-slate-900 dark:bg-white dark:text-slate-900 text-white font-semibold rounded-[16px] shadow-sm active:scale-95 transition-all flex items-center gap-3 text-sm w-full justify-start lg:w-auto">
                 <Layers className="w-4 h-4" /> Build Sack
             </button>
-            <button onClick={() => navigate('/admin/search')} className="h-14 px-6 border-2 border-slate-200 dark:border-white/10 text-slate-600 dark:text-white font-black uppercase tracking-widest rounded-2xl active:scale-95 transition-all flex items-center gap-2 text-xs">
+            <button onClick={() => navigate('/admin/search')} className="h-[72px] px-4 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-white bg-white dark:bg-slate-800 font-semibold rounded-[16px] shadow-sm active:scale-95 transition-all flex items-center gap-3 text-sm w-full justify-start lg:w-auto">
                 <Search className="w-4 h-4" /> Search
             </button>
-            <button onClick={() => navigate('/admin/shipments')} className="h-14 px-6 bg-orange-100 text-orange-600 font-black uppercase tracking-widest rounded-2xl active:scale-95 transition-all flex items-center gap-2 text-xs">
+            <button onClick={() => navigate('/admin/shipments')} className="h-[72px] px-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-white font-semibold rounded-[16px] shadow-sm active:scale-95 transition-all flex items-center gap-3 text-sm w-full justify-start lg:w-auto">
                 <CreditCard className="w-4 h-4" /> Payments
             </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard label="Total Inventory" value={shipments.length} icon={Package} color="bg-blue-500" trend="up" trendValue="12" />
         <StatCard label="In Transit" value={inTransit} icon={Activity} color="bg-orange-500" trend="up" trendValue="5" />
-        <StatCard label="Delivered" value={delivered} icon={CheckCircle} color="bg-green-500" trend="up" trendValue="24" />
-        <StatCard label="Security Alerts" value={pendingAlerts} icon={ShieldAlert} color="bg-red-500" />
+        <StatCard label="Delivered" value={delivered} icon={CheckCircle} color="bg-green-500" trend="down" trendValue="2" />
+        <StatCard label="Security Alerts" value={pendingAlerts} icon={ShieldAlert} color="bg-red-500" trend="up" trendValue="8" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-8 rounded-[3rem] border border-slate-100 dark:border-white/5 shadow-sm space-y-6">
            <div className="flex justify-between items-center">
               <div>
@@ -535,9 +537,9 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0B0F19]">
       <Navbar />
-      <div className="flex pt-14">
+      <div className="flex pt-16">
         <Sidebar />
-        <main className="flex-1 p-8 md:p-12 overflow-auto min-h-[calc(100vh-56px)]">
+        <main className="flex-1 p-8 md:p-12 overflow-auto min-h-[calc(100vh-64px)]">
           <Routes>
             <Route path="/" element={<Overview />} />
             <Route path="/new-shipment" element={<CreateShipment />} />

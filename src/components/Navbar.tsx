@@ -46,7 +46,7 @@ export default function Navbar() {
   const links = isPublicPage && !isAuthenticated ? publicLinks : (user ? roleLinks[user.role] || [] : []);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-[#E2E8F0] h-14">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-[#E2E8F0] h-16">
       <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 shrink-0">
           <img src="/logo-icon.png" alt="CargoFlow" className="w-7 h-7" />
