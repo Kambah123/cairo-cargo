@@ -13,7 +13,7 @@ import GlobalSearch from '@/pages/GlobalSearch';
 import {
   LayoutDashboard, Package, Users, History, ChevronRight, Search,
   MoreVertical, Trash2, X, AlertTriangle, CheckCircle,
-  ShieldAlert, Plus, Layers, DollarSign, ArrowUpRight, ArrowDownRight, Activity, CreditCard, TrendingUp
+  ShieldAlert, Plus, Layers, DollarSign, ArrowUpRight, ArrowDownRight, Activity, CreditCard
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Shipment } from '@/types';
