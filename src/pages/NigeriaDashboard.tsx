@@ -1,25 +1,40 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useData } from '@/context/DataContext';
 import Navbar from '@/components/Navbar';
 import StatusBadge from '@/components/StatusBadge';
+import DestinationBadge from '@/components/DestinationBadge';
+import SackManager from '@/pages/SackManager';
+import GlobalSearch from '@/pages/GlobalSearch';
 import {
-  Plane, CheckCircle, ClipboardList, LogOut, Search, X, Camera, Phone, Banknote, PackageCheck, AlertTriangle, FileText
+  Package,
+  Truck,
+  CheckCircle,
+  Search,
+  Camera,
+  Phone,
+  ArrowDownCircle,
+  ChevronRight,
+  LogOut,
+  Layers,
+  User,
+  DollarSign
 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { Shipment } from '@/types';
-import { supabase } from '@/lib/supabase';
+import type { Shipment, Sack } from '@/types';
 
 function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuth();
   const items = [
-    { label: 'Arrivals', icon: Plane, path: '/nigeria' },
-    { label: 'Pending Deliveries', icon: CheckCircle, path: '/nigeria/deliveries' },
-    { label: 'Pickup Log', icon: ClipboardList, path: '/nigeria/pickups' },
-    { label: 'Incoming Manifest', icon: FileText, path: '/nigeria/incoming' }
+    { label: 'Overview', icon: Package, path: '/nigeria' },
+    { label: 'Sack Arrivals', icon: ArrowDownCircle, path: '/nigeria/arrivals' },
+    { label: 'Sack Management', icon: Layers, path: '/nigeria/sacks' },
+    { label: 'Intel Search', icon: Search, path: '/nigeria/search' },
+    { label: 'Deliveries', icon: CheckCircle, path: '/nigeria/deliveries' },
+    { label: 'Pickup Log', icon: Truck, path: '/nigeria/pickups' },
   ];
   return (
     <aside className="hidden md:flex w-[260px] flex-col bg-white border-r h-[calc(100vh-56px)] sticky top-14">
@@ -31,212 +46,172 @@ function Sidebar() {
   );
 }
 
-function ArrivalModal({ shipment, onClose, onConfirm }: {
-  shipment: Shipment; onClose: () => void; onConfirm: (data: { currentWeight: number; conditionNotes: string }) => void;
-}) {
-  const [currentWeight, setCurrentWeight] = useState(shipment.weight.toString());
-  const [conditionNotes, setConditionNotes] = useState('');
-  const diff = Math.abs(shipment.weight - parseFloat(currentWeight || '0'));
-  const percentDiff = (diff / shipment.weight) * 100;
-  const isAlert = percentDiff > 5 || diff > 2;
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden">
-        <div className="p-6 border-b flex justify-between items-center"><h3 className="text-xl font-bold">Confirm Arrival</h3><button onClick={onClose}><X className="w-5 h-5" /></button></div>
-        <div className="p-6 space-y-6"><div className="p-4 bg-[#F8F9FA] border rounded-xl"><p className="text-lg font-mono font-bold">{shipment.trackingNumber}</p><p className="text-sm text-[#4A5568]">{shipment.senderName} → {shipment.receiverName}</p></div>
-          <div className="space-y-4"><div className="space-y-1.5"><label className="text-xs font-semibold uppercase">Final Weight (kg)</label><input type="number" value={currentWeight} onChange={e => setCurrentWeight(e.target.value)} step="0.01" className={`w-full h-12 px-4 border rounded-xl ${isAlert ? 'border-orange-300 bg-orange-50' : ''}`} />{isAlert && <p className="text-xs text-orange-600 font-bold flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Discrepancy detected!</p>}</div>
-            <textarea value={conditionNotes} onChange={e => setConditionNotes(e.target.value)} placeholder="Condition notes..." rows={3} className="w-full px-4 py-3 border rounded-xl" />
-          </div><button onClick={() => { onConfirm({ currentWeight: parseFloat(currentWeight) || 0, conditionNotes }); onClose(); }} className="w-full h-12 bg-[#1B4332] text-white font-bold rounded-xl shadow-lg">Confirm Arrival</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function DeliveryModal({ shipment, onClose, onConfirm }: {
-  shipment: Shipment; onClose: () => void; onConfirm: (data: { collectorName: string; collectorPhone: string, cashCollected: number, photoFile: File | null }) => void;
-}) {
-  const [collectorName, setCollectorName] = useState('');
-  const [collectorPhone, setCollectorPhone] = useState('');
-  const [cashCollected, setCashCollected] = useState(shipment.balanceDue.toString());
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setPhotoFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setPhotoPreview(reader.result as string);
-      reader.readAsDataURL(file);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-xl max-w-lg w-full overflow-hidden">
-        <div className="p-6 border-b flex justify-between items-center bg-[#38A169] text-white"><h3 className="text-xl font-bold">Complete Handover</h3><button onClick={onClose}><X className="w-5 h-5" /></button></div>
-        <div className="p-6 space-y-6">
-            <div className="flex justify-between items-start">
-                <div><p className="text-sm font-bold text-gray-500 uppercase">Shipment ID</p><p className="font-mono font-bold text-lg">{shipment.trackingNumber}</p></div>
-                <div className="text-right"><p className="text-sm font-bold text-gray-500 uppercase">Balance Due</p><p className="font-bold text-xl text-red-600">${shipment.balanceDue}</p></div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1"><label className="text-[10px] font-bold uppercase text-gray-400">Collector Name</label><input value={collectorName} onChange={e => setCollectorName(e.target.value)} placeholder="Who is picking up?" className="w-full h-12 px-4 border rounded-xl" /></div>
-                <div className="space-y-1"><label className="text-[10px] font-bold uppercase text-gray-400">Collector Phone</label><input value={collectorPhone} onChange={e => setCollectorPhone(e.target.value)} placeholder="Phone number" className="w-full h-12 px-4 border rounded-xl" /></div>
-            </div>
-
-            <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-gray-400">Cash Collected ($)</label>
-                <div className="relative">
-                    <Banknote className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input type="number" value={cashCollected} onChange={e => setCashCollected(e.target.value)} className="w-full h-14 pl-12 pr-4 border-2 border-green-100 rounded-xl bg-green-50/30 font-bold text-lg" />
-                </div>
-            </div>
-
-            <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase text-gray-400">Photo Proof (Mandatory)</label>
-                <div onClick={() => fileInputRef.current?.click()} className="h-32 border-2 border-dashed rounded-xl flex items-center justify-center cursor-pointer overflow-hidden bg-gray-50">
-                    {photoPreview ? <img src={photoPreview} className="w-full h-full object-cover" /> : <div className="flex flex-col items-center text-gray-400"><Camera className="w-6 h-6 mb-1" /><span className="text-[10px]">Tap to take photo</span></div>}
-                </div>
-                <input type="file" ref={fileInputRef} onChange={handlePhotoUpload} accept="image/*" className="hidden" />
-            </div>
-
-            <button onClick={() => {
-                if (!photoFile) { toast.error('Photo required for proof'); return; }
-                onConfirm({ collectorName, collectorPhone, cashCollected: parseFloat(cashCollected) || 0, photoFile });
-                onClose();
-            }} className="w-full h-14 bg-[#38A169] text-white font-bold rounded-2xl shadow-lg flex items-center justify-center gap-2">
-                <PackageCheck className="w-5 h-5" /> Complete Handover
-            </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function Arrivals() {
-  const { shipments, confirmArrival } = useData();
+  const { sacks, shipments, updateShipment, updateSack } = useData();
   const { user } = useAuth();
-  const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
-  const [search, setSearch] = useState('');
-  const myBranch = user?.branch || 'all';
 
-  const arrivalsList = useMemo(() => {
-    return shipments.filter((s) =>
-        (s.status === 'shipped' || s.status === 'departed' || s.status === 'flight_booked') &&
-        (myBranch === 'all' || s.destination === myBranch) &&
-        (!search || s.trackingNumber.toLowerCase().includes(search.toLowerCase()))
-    );
-  }, [shipments, myBranch, search]);
+  const incomingSacks = useMemo(() => {
+    return sacks.filter(s => s.status === 'shipped' && (user?.branch === 'all' || s.destination === user?.branch));
+  }, [sacks, user]);
 
-  const handleConfirm = async (data: { currentWeight: number; conditionNotes: string }) => {
-    if (!selectedShipment || !user) return;
-    try {
-        await confirmArrival(selectedShipment.id, {
-            confirmedAt: new Date().toISOString(),
-            confirmedBy: user.id,
-            currentWeight: data.currentWeight,
-            conditionNotes: data.conditionNotes
-        });
-        toast.success('Arrival confirmed');
-    } catch { toast.error('Failed to confirm arrival'); }
+  const handleSackArrival = async (sack: Sack) => {
+    await updateSack(sack.id, { status: 'arrived' });
+    const sackParcels = shipments.filter(p => p.sackId === sack.id);
+    await Promise.all(sackParcels.map(p => updateShipment(p.id, { status: 'arrived' })));
+    toast.success('Sack and parcels marked as arrived');
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8"><h1 className="text-2xl font-bold">Arrivals</h1><div className="mb-6 relative"><Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#A0AEC0]" /><input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tracking ID..." className="w-full h-14 pl-12 pr-4 border rounded-2xl shadow-sm bg-white" /></div>
-      <div className="space-y-4">{arrivalsList.map(s => (
-          <div key={s.id} className="bg-white border p-6 rounded-2xl flex justify-between items-center shadow-sm hover:border-[#1B4332] transition-colors">
-            <div className="flex gap-4 items-center">
-                <div className="p-3 bg-gray-50 rounded-xl"><Plane className="w-6 h-6 text-[#1B4332]" /></div>
-                <div><p className="font-mono font-bold text-lg">{s.trackingNumber}</p><p className="text-sm text-gray-500">{s.senderName} → {s.receiverName}</p></div>
-            </div>
-            <button onClick={() => setSelectedShipment(s)} className="h-12 px-8 bg-[#1B4332] text-white font-bold rounded-xl shadow-md">Process Arrival</button>
+    <div className="max-w-6xl mx-auto space-y-8">
+      <div>
+        <h1 className="text-3xl font-black tracking-tight">Sack Arrivals</h1>
+        <p className="text-muted-foreground">Process incoming shipments from Cairo</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {incomingSacks.map(sack => (
+          <div key={sack.id} className="bg-white border-2 rounded-[2rem] p-6 space-y-6 shadow-sm hover:shadow-xl transition-all">
+             <div className="flex justify-between items-start">
+               <DestinationBadge destination={sack.destination} size="lg" />
+               <StatusBadge status="shipped" size="sm" />
+             </div>
+
+             <div className="space-y-1">
+               <p className="font-mono font-bold text-lg">{sack.id}</p>
+               <p className="text-xs text-muted-foreground font-bold">{sack.parcelCount} Parcels • {sack.totalWeight.toFixed(1)}kg</p>
+             </div>
+
+             <button
+              onClick={() => handleSackArrival(sack)}
+              className="w-full h-14 bg-[#1B4332] text-white font-black uppercase tracking-widest rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-[#1B4332]/20 active:scale-95 transition-all"
+             >
+               <CheckCircle className="w-5 h-5" /> Mark Arrived
+             </button>
           </div>
-      ))}
-      {arrivalsList.length === 0 && <div className="py-20 text-center text-gray-400 flex flex-col items-center"><Plane className="w-12 h-12 mb-4 opacity-20" /><p>No shipments currently arriving</p></div>}
-      </div>{selectedShipment && <ArrivalModal shipment={selectedShipment} onClose={() => setSelectedShipment(null)} onConfirm={handleConfirm} />}
+        ))}
+        {incomingSacks.length === 0 && <div className="col-span-full py-20 text-center text-gray-400 border-4 border-dashed rounded-[3rem]">No incoming sacks for this branch</div>}
+      </div>
     </div>
   );
 }
 
 function Deliveries() {
-  const { shipments, confirmDelivery, updateShipment } = useData();
+  const { shipments, confirmDelivery } = useData();
   const { user } = useAuth();
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
-  const [search, setSearch] = useState('');
-  const myBranch = user?.branch || 'all';
+  const [searchTerm, setSearchTerm] = useState('');
 
   const readyForPickup = useMemo(() => {
-    return shipments.filter((s) =>
-        (s.status === 'arrived' || s.status === 'ready_for_pickup') &&
-        (myBranch === 'all' || s.destination === myBranch) &&
-        (!search || s.trackingNumber.toLowerCase().includes(search.toLowerCase()))
+    return shipments.filter(s =>
+      s.status === 'arrived' &&
+      (user?.branch === 'all' || s.destination === user?.branch) &&
+      (s.trackingNumber.toLowerCase().includes(searchTerm.toLowerCase()) || s.receiverName.toLowerCase().includes(searchTerm.toLowerCase()))
     );
-  }, [shipments, myBranch, search]);
+  }, [shipments, user, searchTerm]);
 
-  const handleConfirm = async (data: { collectorName: string; collectorPhone: string, cashCollected: number, photoFile: File | null }) => {
-    if (!selectedShipment || !user) return;
-    try {
-        let pickupPhotoUrl = '';
-        if (data.photoFile) {
-            const fileName = `pickup_${selectedShipment.id}.${data.photoFile.name.split('.').pop()}`;
-            const { error } = await supabase.storage.from('cargo-photos').upload(`pickups/${fileName}`, data.photoFile);
-            if (!error) pickupPhotoUrl = supabase.storage.from('cargo-photos').getPublicUrl(`pickups/${fileName}`).data.publicUrl;
-        }
-
-        await confirmDelivery(selectedShipment.id, {
-            collectorName: data.collectorName,
-            collectorPhone: data.collectorPhone,
-            deliveredAt: new Date().toISOString(),
-            confirmedBy: user.id,
-            cashCollected: data.cashCollected
-        });
-
-        if (pickupPhotoUrl) {
-            await updateShipment(selectedShipment.id, { pickupPhotoUrl });
-        }
-
-        toast.success('Handover complete');
-    } catch { toast.error('Failed to process handover'); }
-  };
-
-  const handleRefusal = async (s: Shipment) => {
-    const reason = window.prompt('Reason for refusal:');
-    if (reason) {
-        try {
-            await updateShipment(s.id, { status: 'returned', refusalReason: reason });
-            toast.success('Marked as returned');
-        } catch { toast.error('Failed'); }
-    }
+  const handleHandover = async (id: string, data: any) => {
+    await confirmDelivery(id, {
+      ...data,
+      deliveredAt: new Date().toISOString(),
+      confirmedBy: user!.id
+    });
+    setSelectedShipment(null);
+    toast.success('Handover complete');
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8"><h1 className="text-2xl font-bold">Pending Handover</h1><div className="mb-6 relative"><Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#A0AEC0]" /><input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search receiver or tracking..." className="w-full h-14 pl-12 pr-4 border rounded-2xl bg-white shadow-sm" /></div>
-       <div className="space-y-4">{readyForPickup.map(s => (
-           <div key={s.id} className="bg-white border p-6 rounded-2xl flex justify-between items-center shadow-sm">
-             <div>
-                <p className="font-mono font-bold text-lg">{s.trackingNumber}</p>
-                <p className="text-sm font-medium text-gray-700">{s.receiverName}</p>
-                <div className="flex gap-2 mt-1">
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${s.balanceDue > 0 ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
-                        {s.balanceDue > 0 ? `Due: $${s.balanceDue}` : 'Fully Paid'}
-                    </span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-bold">{s.weight}kg</span>
+    <div className="max-w-4xl mx-auto space-y-8">
+      <div>
+        <h1 className="text-3xl font-black tracking-tight text-[#1B4332]">Pending Handover</h1>
+        <p className="text-muted-foreground">Verify collection and process final delivery</p>
+      </div>
+
+      <div className="relative">
+        <input
+          placeholder="Search by tracking or receiver name..."
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          className="w-full h-16 pl-14 pr-6 bg-white border-2 rounded-2xl shadow-sm focus:border-[#1B4332] transition-all outline-none text-lg"
+        />
+        <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />
+      </div>
+
+      <div className="space-y-4">
+        {readyForPickup.map(s => (
+          <div key={s.id} className="bg-white border-2 rounded-[2rem] p-8 flex flex-col md:flex-row justify-between items-center gap-6 shadow-sm hover:shadow-lg transition-all group">
+             <div className="flex-1 w-full space-y-2 text-center md:text-left">
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
+                  <p className="font-mono font-black text-2xl tracking-tighter text-[#1B4332]">{s.trackingNumber}</p>
+                  <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${s.balanceDue > 0 ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600'}`}>
+                    {s.balanceDue > 0 ? `Due: $${s.balanceDue}` : 'Fully Paid'}
+                  </div>
+                </div>
+                <p className="text-lg font-bold text-gray-700">{s.receiverName}</p>
+                <div className="flex items-center justify-center md:justify-start gap-2 text-xs text-muted-foreground font-bold">
+                  <Phone className="w-3 h-3" /> {s.receiverPhone}
                 </div>
              </div>
-             <div className="flex gap-2">
-                <button onClick={() => handleRefusal(s)} className="h-12 px-4 border-2 border-red-100 text-red-500 font-bold rounded-xl hover:bg-red-50">Refused</button>
-                <button onClick={() => setSelectedShipment(s)} className="h-12 px-6 bg-[#38A169] text-white font-bold rounded-xl shadow-md">Complete Handover</button>
+
+             <button
+              onClick={() => setSelectedShipment(s)}
+              className="w-full md:w-auto h-16 px-10 bg-[#1B4332] text-white font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-[#1B4332]/10 active:scale-95 transition-all flex items-center justify-center gap-3"
+             >
+               Process Handover <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+             </button>
+          </div>
+        ))}
+        {readyForPickup.length === 0 && <div className="py-20 text-center text-gray-300 border-4 border-dashed rounded-[3rem]">No parcels ready for collection</div>}
+      </div>
+
+      {selectedShipment && (
+        <div className="fixed inset-0 z-50 bg-[#1B4332]/95 backdrop-blur-xl flex items-center justify-center p-4 overflow-auto">
+           <div className="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 duration-500">
+             <div className="p-8 border-b text-center space-y-2">
+                <h2 className="text-2xl font-black tracking-tight">Delivery Confirmation</h2>
+                <p className="text-muted-foreground font-mono font-bold text-sm uppercase tracking-widest">{selectedShipment.trackingNumber}</p>
              </div>
+
+             <form className="p-10 space-y-6" onSubmit={(e) => {
+               e.preventDefault();
+               const formData = new FormData(e.currentTarget);
+               handleHandover(selectedShipment.id, {
+                 collectorName: formData.get('collectorName'),
+                 collectorPhone: formData.get('collectorPhone'),
+                 cashCollected: Number(formData.get('cashCollected'))
+               });
+             }}>
+               <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-4">Collector Name</label>
+                    <div className="relative">
+                      <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input name="collectorName" required placeholder="Who is picking up?" className="w-full h-14 pl-12 pr-6 border-2 rounded-2xl focus:border-[#1B4332] outline-none font-bold" />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-4">Phone Number</label>
+                    <div className="relative">
+                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input name="collectorPhone" required placeholder="+234..." className="w-full h-14 pl-12 pr-6 border-2 rounded-2xl focus:border-[#1B4332] outline-none font-bold" />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-4">Cash Collection ($)</label>
+                    <div className="relative">
+                      <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-green-600" />
+                      <input name="cashCollected" type="number" defaultValue={selectedShipment.balanceDue} className="w-full h-14 pl-12 pr-6 border-2 rounded-2xl focus:border-green-600 outline-none font-bold text-green-600 text-2xl" />
+                    </div>
+                  </div>
+               </div>
+
+               <div className="flex gap-4 pt-4">
+                 <button type="button" onClick={() => setSelectedShipment(null)} className="flex-1 h-16 font-black uppercase text-gray-400 tracking-widest">Cancel</button>
+                 <button type="submit" className="flex-1 h-16 bg-[#1B4332] text-white font-black uppercase tracking-widest rounded-2xl shadow-xl">Handover Complete</button>
+               </div>
+             </form>
            </div>
-       ))}
-       {readyForPickup.length === 0 && <div className="py-20 text-center text-gray-400 flex flex-col items-center"><CheckCircle className="w-12 h-12 mb-4 opacity-20" /><p>No shipments ready for handover</p></div>}
-       </div>{selectedShipment && <DeliveryModal shipment={selectedShipment} onClose={() => setSelectedShipment(null)} onConfirm={handleConfirm} />}
+        </div>
+      )}
     </div>
   );
 }
@@ -244,114 +219,70 @@ function Deliveries() {
 function PickupLog() {
   const { shipments } = useData();
   const { user } = useAuth();
-  const myBranch = user?.branch || 'all';
   const delivered = useMemo(() => {
-    return shipments.filter(s => s.status === 'delivered' && s.deliveryConfirmation && (myBranch === 'all' || s.destination === myBranch));
-  }, [shipments, myBranch]);
+    return shipments.filter(s => s.status === 'delivered' && (user?.branch === 'all' || s.destination === user?.branch));
+  }, [shipments, user]);
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6"><h1 className="text-2xl font-bold">Pickup Log</h1><div className="bg-white border rounded-2xl overflow-hidden shadow-sm">
-        <table className="w-full text-left">
-            <thead className="bg-gray-50 border-b">
-                <tr>
-                    <th className="px-6 py-4 text-xs font-bold uppercase text-gray-400">Tracking ID</th>
-                    <th className="px-6 py-4 text-xs font-bold uppercase text-gray-400">Collector Details</th>
-                    <th className="px-6 py-4 text-xs font-bold uppercase text-gray-400">Handover Time</th>
-                    <th className="px-6 py-4 text-xs font-bold uppercase text-gray-400">Financials</th>
-                    <th className="px-6 py-4 text-xs font-bold uppercase text-gray-400">Proof</th>
-                </tr>
+    <div className="max-w-6xl mx-auto space-y-8 pb-20">
+      <div>
+        <h1 className="text-3xl font-black tracking-tight">Handover Archives</h1>
+        <p className="text-muted-foreground">Historical records of successful deliveries</p>
+      </div>
+
+      <div className="bg-white border-2 rounded-[3rem] overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead className="bg-gray-50 border-b border-gray-100">
+               <tr className="text-[10px] font-black uppercase text-gray-400 tracking-widest">
+                  <th className="px-10 py-6">ID / Destination</th>
+                  <th className="px-10 py-6">Collector Details</th>
+                  <th className="px-10 py-6">Time</th>
+                  <th className="px-10 py-6">Financials</th>
+                  <th className="px-10 py-6 text-right">Proof</th>
+               </tr>
             </thead>
-           <tbody className="divide-y">{delivered.map(s => (
-             <tr key={s.id}>
-                <td className="px-6 py-4 font-mono font-bold text-sm">{s.trackingNumber}</td>
-                <td className="px-6 py-4">
-                    <p className="text-sm font-bold">{s.deliveryConfirmation!.collectorName}</p>
-                    <div className="flex items-center gap-1 text-[10px] text-gray-400"><Phone className="w-3 h-3" />{s.deliveryConfirmation!.collectorPhone}</div>
-                </td>
-                <td className="px-6 py-4 text-xs font-medium text-gray-500">{new Date(s.deliveryConfirmation!.deliveredAt).toLocaleString()}</td>
-                <td className="px-6 py-4">
-                    <span className="text-sm font-bold text-green-600">${s.deliveryConfirmation!.cashCollected || 0}</span>
-                    <p className="text-[10px] text-gray-400">collected</p>
-                </td>
-                <td className="px-6 py-4">
-                    {s.pickupPhotoUrl ? (
-                        <a href={s.pickupPhotoUrl} target="_blank" rel="noreferrer" className="p-2 bg-gray-100 rounded-lg inline-block hover:bg-gray-200"><Camera className="w-4 h-4 text-gray-500" /></a>
-                    ) : '-'}
-                </td>
-             </tr>
-           ))}</tbody>
-        </table>
-        {delivered.length === 0 && <div className="py-20 text-center text-gray-400">No handover records yet</div>}
-    </div>
+            <tbody className="divide-y divide-gray-50">
+               {delivered.map(s => (
+                 <tr key={s.id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-10 py-8">
+                       <p className="font-mono font-black text-lg text-[#1B4332] mb-1">{s.trackingNumber}</p>
+                       <DestinationBadge destination={s.destination} size="sm" />
+                    </td>
+                    <td className="px-10 py-8">
+                       <p className="font-bold text-gray-900 mb-1">{s.deliveryConfirmation?.collectorName}</p>
+                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-bold uppercase">
+                          <Phone className="w-3 h-3" /> {s.deliveryConfirmation?.collectorPhone}
+                       </div>
+                    </td>
+                    <td className="px-10 py-8">
+                       <p className="text-sm font-bold text-gray-700">{new Date(s.deliveryConfirmation!.deliveredAt).toLocaleDateString()}</p>
+                       <p className="text-[10px] text-muted-foreground font-bold">{new Date(s.deliveryConfirmation!.deliveredAt).toLocaleTimeString()}</p>
+                    </td>
+                    <td className="px-10 py-8">
+                       <div className="flex items-center gap-1.5 text-lg font-black text-green-600">
+                          <DollarSign className="w-4 h-4" /> {s.deliveryConfirmation?.cashCollected || 0}
+                       </div>
+                       <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Total Collected</p>
+                    </td>
+                    <td className="px-10 py-8 text-right">
+                       <button className="p-3 bg-[#EDF2F7] rounded-2xl text-[#1B4332] hover:bg-[#1B4332] hover:text-white transition-all">
+                          <Camera className="w-5 h-5" />
+                       </button>
+                    </td>
+                 </tr>
+               ))}
+            </tbody>
+          </table>
+          {delivered.length === 0 && <div className="py-24 text-center text-gray-300 italic">No historical records found</div>}
+        </div>
+      </div>
     </div>
   );
 }
 
-function IncomingManifest() {
-    const { batches, shipments } = useData();
-    const { user } = useAuth();
-    const myBranch = user?.branch || 'all';
-
-    const incomingBatches = useMemo(() => {
-        return batches.filter(b =>
-            (b.status === 'shipped' || b.status === 'departed' || b.status === 'flight_booked') &&
-            (myBranch === 'all' || b.destination === myBranch)
-        );
-    }, [batches, myBranch]);
-
-    return (
-        <div className="max-w-6xl mx-auto space-y-6">
-            <h1 className="text-2xl font-bold">Incoming Flight Manifests</h1>
-            <div className="grid grid-cols-1 gap-6">
-                {incomingBatches.map(b => (
-                    <div key={b.id} className="bg-white border rounded-2xl overflow-hidden shadow-sm">
-                        <div className="p-6 bg-gray-50 border-b flex justify-between items-center">
-                            <div>
-                                <h3 className="font-bold text-lg font-mono">{b.id}</h3>
-                                <p className="text-xs text-gray-500">Destination: {b.destination.toUpperCase()} | Flight: {new Date(b.flightDate).toLocaleDateString()}</p>
-                            </div>
-                            <div className="flex items-center gap-4">
-                                <div className="text-right">
-                                    <p className="text-xs font-bold">{b.shipmentCount} Items</p>
-                                    <p className="text-xs text-gray-500">{b.totalWeight.toFixed(1)} kg Total</p>
-                                </div>
-                                <StatusBadge status={b.status as any} />
-                            </div>
-                        </div>
-                        <div className="p-6 overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead>
-                                    <tr className="text-[10px] font-bold uppercase text-gray-400">
-                                        <th className="pb-4">Tracking ID</th>
-                                        <th className="pb-4">Sender</th>
-                                        <th className="pb-4">Receiver</th>
-                                        <th className="pb-4">Weight</th>
-                                        <th className="pb-4">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y">
-                                    {shipments.filter(s => s.batchId === b.id).map(s => (
-                                        <tr key={s.id}>
-                                            <td className="py-3 font-mono text-sm font-bold">{s.trackingNumber}</td>
-                                            <td className="py-3 text-xs">{s.senderName}</td>
-                                            <td className="py-3 text-xs">{s.receiverName}</td>
-                                            <td className="py-3 text-xs">{s.weight}kg</td>
-                                            <td className="py-3"><StatusBadge status={s.status} size="sm" /></td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                ))}
-                {incomingBatches.length === 0 && <div className="py-20 text-center text-gray-400 border-2 border-dashed rounded-2xl">No incoming manifests currently</div>}
-            </div>
-        </div>
-    );
-}
-
 export default function NigeriaDashboard() {
   return (
-    <div className="min-h-screen bg-[#F8F9FA]"><Navbar /><div className="flex pt-14"><Sidebar /><main className="flex-1 p-4 md:p-8 overflow-auto min-h-[calc(100vh-56px)]"><Routes><Route path="/" element={<Arrivals />} /><Route path="/deliveries" element={<Deliveries />} /><Route path="/pickups" element={<PickupLog />} /><Route path="/incoming" element={<IncomingManifest />} /></Routes></main></div></div>
+    <div className="min-h-screen bg-[#F8F9FA]"><Navbar /><div className="flex pt-14"><Sidebar /><main className="flex-1 p-4 md:p-8 overflow-auto min-h-[calc(100vh-56px)]"><Routes><Route path="/" element={<Arrivals />} /><Route path="/arrivals" element={<Arrivals />} /><Route path="/sacks" element={<SackManager />} /><Route path="/deliveries" element={<Deliveries />} /><Route path="/pickups" element={<PickupLog />} /><Route path="/search" element={<GlobalSearch />} /></Routes></main></div></div>
   );
 }
