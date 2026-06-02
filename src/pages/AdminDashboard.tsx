@@ -13,7 +13,7 @@ import GlobalSearch from '@/pages/GlobalSearch';
 import {
   LayoutDashboard, Package, Users, History, ChevronRight, Search,
   MoreVertical, Trash2, X, AlertTriangle, CheckCircle,
-  ShieldAlert, Plus, Layers, DollarSign, ArrowUpRight, ArrowDownRight, Activity, CreditCard
+  ShieldAlert, Plus, Layers, DollarSign, ArrowUpRight, ArrowDownRight, Activity, CreditCard, TrendingUp
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Shipment } from '@/types';
@@ -28,6 +28,7 @@ function Sidebar() {
 
   const items = [
     { label: 'Overview', icon: LayoutDashboard, path: '/admin' },
+    { label: 'New Shipment', icon: Plus, path: '/admin/new-shipment' },
     { label: 'All Shipments', icon: Package, path: '/admin/shipments' },
     { label: 'Sack Manager', icon: Layers, path: '/admin/sacks' },
     { label: 'Intel Search', icon: Search, path: '/admin/search' },
@@ -254,9 +255,9 @@ function WeightAlerts() {
                         <tbody className="divide-y divide-slate-50 dark:divide-white/5">
                             {filtered.map(a => (
                                 <tr key={a.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
-                                    <td className="px-10 py-8">
-                                       <p className="font-mono font-black text-lg text-blue-600 mb-1">{a.trackingNumber}</p>
+                                    <td className="px-10 py-8 font-mono font-black text-sm text-blue-600">
                                        <div className="flex gap-2"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Secure Entry</span></div>
+                                       {a.trackingNumber}
                                     </td>
                                     <td className="px-10 py-8 font-black text-slate-700 dark:text-slate-300">{a.initialWeight}kg</td>
                                     <td className="px-10 py-8 font-black text-slate-700 dark:text-slate-300">{a.finalWeight}kg</td>
@@ -372,7 +373,6 @@ function AllShipments() {
         const newBalance = selectedShipment.totalAmount - data.paidAmount;
         await logAdminAction({ adminId: user.id, adminName: user.name, shipmentId: selectedShipment.id, actionType: 'adjust_balance', oldValue: selectedShipment.paidAmount.toString(), newValue: data.paidAmount.toString(), reason: data.reason });
         await updateShipment(selectedShipment.id, { paidAmount: data.paidAmount, balanceDue: newBalance });
-        toast.success('Financial audit complete');
       } else if (type === 'delete_shipment') {
         await logAdminAction({ adminId: user.id, adminName: user.name, shipmentId: selectedShipment.id, actionType: 'delete_shipment', oldValue: 'exists', newValue: 'deleted', reason: data.reason });
         await deleteShipment(selectedShipment.id);
