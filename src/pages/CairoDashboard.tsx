@@ -5,6 +5,8 @@ import { useData } from '@/context/DataContext';
 import Navbar from '@/components/Navbar';
 import StatusBadge from '@/components/StatusBadge';
 import BatchManager from '@/pages/BatchManager';
+import SackManager from '@/pages/SackManager';
+import GlobalSearch from '@/pages/GlobalSearch';
 import CreateShipment from '@/components/CreateShipment';
 import { Plus, List, Layers, LogOut, Printer, Search, Copy, Edit2, ArrowLeftRight } from 'lucide-react';
 import type { Shipment, ShipmentStatus } from '@/types';
@@ -14,8 +16,11 @@ function Sidebar() {
   const location = useLocation();
   const { logout } = useAuth();
   const items = [
-    { label: 'Create Shipment', icon: Plus, path: '/cairo' },
+    { label: 'Dashboard', icon: List, path: '/cairo' },
+    { label: 'Create Shipment', icon: Plus, path: '/cairo/new' },
     { label: 'My Shipments', icon: List, path: '/cairo/shipments' },
+    { label: 'Sack Management', icon: Layers, path: '/cairo/sacks' },
+    { label: 'Intel Search', icon: Search, path: '/cairo/search' },
     { label: 'Batch Manager', icon: Layers, path: '/cairo/batches' },
     { label: 'Return Shipments', icon: ArrowLeftRight, path: '/cairo/returns' }
   ];
@@ -154,6 +159,6 @@ function ReturnShipments() {
 
 export default function CairoDashboard() {
   return (
-    <div className="min-h-screen bg-[#F8F9FA]"><Navbar /><div className="flex pt-14"><Sidebar /><main className="flex-1 p-4 md:p-8 overflow-auto min-h-[calc(100vh-56px)]"><Routes><Route path="/" element={<CreateShipment />} /><Route path="/shipments" element={<MyShipments />} /><Route path="/batches" element={<BatchManager />} /><Route path="/returns" element={<ReturnShipments />} /></Routes></main></div></div>
+    <div className="min-h-screen bg-[#F8F9FA]"><Navbar /><div className="flex pt-14"><Sidebar /><main className="flex-1 p-4 md:p-8 overflow-auto min-h-[calc(100vh-56px)]"><Routes><Route path="/" element={<MyShipments />} /><Route path="/new" element={<CreateShipment />} /><Route path="/shipments" element={<MyShipments />} /><Route path="/sacks" element={<SackManager />} /><Route path="/search" element={<GlobalSearch />} /><Route path="/batches" element={<BatchManager />} /><Route path="/returns" element={<ReturnShipments />} /></Routes></main></div></div>
   );
 }

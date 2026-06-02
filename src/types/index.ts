@@ -1,6 +1,6 @@
 export type UserRole = 'cairo_staff' | 'kano_staff' | 'abuja_staff' | 'admin';
 
-export type Destination = 'kano' | 'abuja';
+export type Destination = 'kano' | 'abuja' | 'lagos';
 
 export type ShipmentStatus =
   | 'received'
@@ -35,6 +35,7 @@ export interface Shipment {
   balanceDue: number;
   status: ShipmentStatus;
   batchId?: string;
+  sackId?: string;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -56,6 +57,17 @@ export interface Shipment {
     cashCollected?: number;
   };
   refusalReason?: string;
+}
+
+export interface Sack {
+  id: string;
+  destination: Destination;
+  status: 'open' | 'closed' | 'shipped' | 'arrived';
+  parcelCount: number;
+  totalWeight: number;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
 }
 
 export interface Batch {
@@ -145,6 +157,7 @@ export const STATUS_LABELS: Record<ShipmentStatus, string> = {
 export const DESTINATION_COLORS: Record<Destination, string> = {
   kano: '#38A169',
   abuja: '#3182CE',
+  lagos: '#E53E3E',
 };
 
 export const PRIORITY_CONFIG: Record<PriorityLabel, { label: string; bg: string; text: string }> = {
@@ -155,13 +168,13 @@ export const PRIORITY_CONFIG: Record<PriorityLabel, { label: string; bg: string;
 };
 
 export const STATUS_BADGE_COLORS: Record<ShipmentStatus, { bg: string; text: string }> = {
-  received: { bg: '#EDF2F7', text: '#4A5568' },
+  received: { bg: '#F3F4F6', text: '#374151' },
   awaiting_flight: { bg: '#FEF3C7', text: '#D69E2E' },
   ready_for_flight: { bg: '#E9D8FD', text: '#805AD5' },
   flight_booked: { bg: '#BEE3F8', text: '#2B6CB0' },
   departed: { bg: '#C6F6D5', text: '#2F855A' },
   shipped: { bg: '#EBF8FF', text: '#3182CE' },
-  arrived: { bg: '#E9D8FD', text: '#805AD5' },
+  arrived: { bg: '#EBF8FF', text: '#3182CE' },
   ready_for_pickup: { bg: '#FEEBC8', text: '#DD6B20' },
   delivered: { bg: '#C6F6D5', text: '#38A169' },
   on_hold: { bg: '#FED7D7', text: '#E53E3E' },
