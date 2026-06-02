@@ -4,15 +4,20 @@ import { useAuth } from '@/context/AuthContext';
 import { useData } from '@/context/DataContext';
 import Navbar from '@/components/Navbar';
 import StatusBadge from '@/components/StatusBadge';
+import DestinationBadge from '@/components/DestinationBadge';
+import PriorityChips from '@/components/PriorityChips';
 import StaffManagement from '@/pages/StaffManagement';
 import CreateShipment from '@/components/CreateShipment';
+import SackManager from '@/pages/SackManager';
+import GlobalSearch from '@/pages/GlobalSearch';
 import {
-  LayoutDashboard, Package, TrendingUp, Users, History, ChevronRight, Search,
+  LayoutDashboard, Package, Users, History, ChevronRight, Search,
   MoreVertical, Trash2, X, AlertTriangle, CheckCircle,
-  ShieldAlert, Plus
+  ShieldAlert, Plus, Layers, DollarSign, ArrowUpRight, ArrowDownRight, Activity, CreditCard, TrendingUp
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Shipment } from '@/types';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
 function Sidebar() {
   const navigate = useNavigate();
@@ -25,62 +30,169 @@ function Sidebar() {
     { label: 'Overview', icon: LayoutDashboard, path: '/admin' },
     { label: 'New Shipment', icon: Plus, path: '/admin/new-shipment' },
     { label: 'All Shipments', icon: Package, path: '/admin/shipments' },
-
+    { label: 'Sack Manager', icon: Layers, path: '/admin/sacks' },
+    { label: 'Intel Search', icon: Search, path: '/admin/search' },
     { label: 'Weight Alerts', icon: ShieldAlert, path: '/admin/alerts', badge: pendingAlerts },
-    { label: 'Staff Management', icon: Users, path: '/admin/staff' },
-    { label: 'Audit Logs', icon: History, path: '/admin/audit' },
+    { label: 'Staff Directory', icon: Users, path: '/admin/staff' },
+    { label: 'Audit Trail', icon: History, path: '/admin/audit' },
   ];
   return (
-    <aside className="hidden md:flex w-[260px] flex-col bg-white border-r h-[calc(100vh-56px)] sticky top-14">
-      <nav className="flex-1 p-3 space-y-1">{items.map((item) => (
-        <button key={item.path} onClick={() => navigate(item.path)} className={`w-full flex justify-between items-center px-3 py-2.5 rounded-lg text-sm font-medium ${location.pathname === item.path ? 'bg-[#EDF2F7] text-[#1B4332] border-l-[3px] border-[#1B4332]' : 'text-[#4A5568]'}`}>
-            <div className="flex items-center gap-3"><item.icon className="w-4 h-4" />{item.label}</div>
+    <aside className="hidden md:flex w-[280px] flex-col bg-[#0F172A] border-r border-white/5 h-[calc(100vh-56px)] sticky top-14">
+      <nav className="flex-1 p-4 space-y-2">
+        {items.map((item) => (
+          <button
+            key={item.path}
+            onClick={() => navigate(item.path)}
+            className={`w-full flex justify-between items-center px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200 ${
+              location.pathname === item.path
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+                : 'text-slate-400 hover:bg-white/5 hover:text-white'
+            }`}
+          >
+            <div className="flex items-center gap-3"><item.icon className="w-4.5 h-4.5" />{item.label}</div>
             {(item.badge ?? 0) > 0 && <span className="px-2 py-0.5 bg-red-500 text-white text-[10px] rounded-full">{item.badge}</span>}
+          </button>
+        ))}
+      </nav>
+      <div className="p-4 border-t border-white/5">
+        <button onClick={() => { logout(); navigate('/'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-red-400 hover:bg-red-500/10 transition-all">
+          <History className="w-4.5 h-4.5" /> Logout Session
         </button>
-      ))}</nav>
-      <div className="p-3 border-t"><button onClick={() => { logout(); navigate('/'); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[#E53E3E]"><History className="w-4 h-4" /> Logout</button></div>
+      </div>
     </aside>
   );
 }
 
-function Overview() {
-  const { shipments, weightAlerts } = useData();
-  const pendingAlerts = weightAlerts.filter(a => a.status === 'pending').length;
+function StatCard({ label, value, icon: Icon, color, trend, trendValue }: any) {
+    return (
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-100 dark:border-white/5 shadow-sm hover:shadow-xl transition-all duration-300 group">
+            <div className="flex justify-between items-start mb-4">
+                <div className={`p-4 rounded-2xl ${color} text-white shadow-lg group-hover:scale-110 transition-transform`}>
+                    <Icon className="w-6 h-6" />
+                </div>
+                {trend && (
+                    <div className={`flex items-center gap-1 text-[10px] font-black px-2 py-1 rounded-full ${trend === 'up' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+                        {trend === 'up' ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                        {trendValue}%
+                    </div>
+                )}
+            </div>
+            <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">{label}</p>
+            <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">{value}</p>
+        </div>
+    );
+}
 
-  const stats = [
-    { label: 'Total Shipments', value: shipments.length, icon: Package, color: 'bg-blue-500' },
-    { label: 'Weight Alerts', value: pendingAlerts, icon: ShieldAlert, color: 'bg-red-500' },
-    { label: 'Active Batches', value: 0, icon: TrendingUp, color: 'bg-green-500' },
+function Overview() {
+  const { shipments, weightAlerts, adminActions } = useData();
+  const navigate = useNavigate();
+  const pendingAlerts = weightAlerts.filter(a => a.status === 'pending').length;
+  const inTransit = shipments.filter(s => ['shipped', 'departed', 'flight_booked'].includes(s.status)).length;
+  const delivered = shipments.filter(s => s.status === 'delivered').length;
+
+  const chartData = [
+    { name: 'Mon', value: 400 },
+    { name: 'Tue', value: 700 },
+    { name: 'Wed', value: 450 },
+    { name: 'Thu', value: 900 },
+    { name: 'Fri', value: 650 },
+    { name: 'Sat', value: 850 },
+    { name: 'Sun', value: 1100 },
   ];
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{stats.map((s, i) => (
-        <div key={i} className="bg-white p-6 rounded-3xl border shadow-sm flex items-center gap-4">
-          <div className={`p-4 rounded-2xl ${s.color} text-white`}><s.icon className="w-6 h-6" /></div>
-          <div><p className="text-sm font-medium text-gray-500">{s.label}</p><p className="text-2xl font-bold">{s.value}</p></div>
+    <div className="space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+        <div>
+            <h1 className="text-4xl font-black tracking-tighter text-slate-900 dark:text-white uppercase">Operational Hub</h1>
+            <p className="text-slate-400 font-bold">Real-time logistics intelligence & terminal control</p>
         </div>
-      ))}</div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white p-8 rounded-3xl border shadow-sm h-[400px]">
-          <h3 className="font-bold mb-6 flex items-center justify-between">Recent Activity <ChevronRight className="w-4 h-4" /></h3>
-          <div className="space-y-4">{shipments.slice(0, 6).map(s => (
-            <div key={s.id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl transition-colors">
-              <div className="flex items-center gap-3"><div className="w-2 h-2 rounded-full bg-[#1B4332]" /><div><p className="text-sm font-bold">{s.trackingNumber}</p><p className="text-[10px] uppercase text-gray-400">{s.status.replace(/_/g, ' ')}</p></div></div>
-              <span className="text-[10px] text-gray-400 font-medium">{new Date(s.createdAt).toLocaleDateString()}</span>
-            </div>
-          ))}</div>
+        <div className="flex flex-wrap gap-3">
+            <button onClick={() => navigate('/admin/new-shipment')} className="h-14 px-6 bg-blue-600 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-blue-600/20 active:scale-95 transition-all flex items-center gap-2 text-xs">
+                <Plus className="w-4 h-4" /> New Parcel
+            </button>
+            <button onClick={() => navigate('/admin/sacks')} className="h-14 px-6 bg-slate-900 dark:bg-white dark:text-slate-900 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl active:scale-95 transition-all flex items-center gap-2 text-xs">
+                <Layers className="w-4 h-4" /> Build Sack
+            </button>
+            <button onClick={() => navigate('/admin/search')} className="h-14 px-6 border-2 border-slate-200 dark:border-white/10 text-slate-600 dark:text-white font-black uppercase tracking-widest rounded-2xl active:scale-95 transition-all flex items-center gap-2 text-xs">
+                <Search className="w-4 h-4" /> Search
+            </button>
+            <button onClick={() => navigate('/admin/shipments')} className="h-14 px-6 bg-orange-100 text-orange-600 font-black uppercase tracking-widest rounded-2xl active:scale-95 transition-all flex items-center gap-2 text-xs">
+                <CreditCard className="w-4 h-4" /> Payments
+            </button>
         </div>
-        <div className="bg-[#1B4332] p-8 rounded-3xl text-white shadow-xl flex flex-col justify-between">
-            <div><h3 className="text-xl font-bold mb-2">Revenue Growth</h3><p className="text-white/60 text-sm">Monthly performance overview</p></div>
-            <div className="h-48 flex items-end gap-2 px-4">
-                {[40, 70, 45, 90, 65, 85].map((h, i) => <div key={i} style={{ height: `${h}%` }} className="flex-1 bg-white/20 rounded-t-lg hover:bg-white/40 transition-all cursor-help" title={`${h*1000} USD`} />)}
-            </div>
-            <div className="flex justify-between items-center pt-6 border-t border-white/10">
-                <div><p className="text-white/40 text-[10px] font-bold uppercase">Total Revenue</p><p className="text-2xl font-bold">$14,250</p></div>
+      </div>
 
-            </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard label="Total Inventory" value={shipments.length} icon={Package} color="bg-blue-500" trend="up" trendValue="12" />
+        <StatCard label="In Transit" value={inTransit} icon={Activity} color="bg-orange-500" trend="up" trendValue="5" />
+        <StatCard label="Delivered" value={delivered} icon={CheckCircle} color="bg-green-500" trend="up" trendValue="24" />
+        <StatCard label="Security Alerts" value={pendingAlerts} icon={ShieldAlert} color="bg-red-500" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-8 rounded-[3rem] border border-slate-100 dark:border-white/5 shadow-sm space-y-6">
+           <div className="flex justify-between items-center">
+              <div>
+                 <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Revenue Dynamics</h3>
+                 <p className="text-xs font-bold text-slate-400">Weekly financial performance audit</p>
+              </div>
+              <div className="flex items-center gap-4">
+                 <div className="text-right">
+                    <p className="text-[10px] font-black text-slate-400 uppercase">Gross Yield</p>
+                    <p className="text-xl font-black text-green-500">$48,250.00</p>
+                 </div>
+                 <div className="p-3 bg-green-50 dark:bg-green-500/10 rounded-2xl text-green-600">
+                    <DollarSign className="w-6 h-6" />
+                 </div>
+              </div>
+           </div>
+           <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                 <AreaChart data={chartData}>
+                    <defs>
+                       <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                       </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" opacity={0.5} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94A3B8', fontSize: 10, fontWeight: 'bold'}} dy={10} />
+                    <YAxis hide />
+                    <Tooltip contentStyle={{borderRadius: '1rem', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)'}} />
+                    <Area type="monotone" dataKey="value" stroke="#3B82F6" strokeWidth={4} fillOpacity={1} fill="url(#colorValue)" />
+                 </AreaChart>
+              </ResponsiveContainer>
+           </div>
+        </div>
+
+        <div className="bg-[#0F172A] p-8 rounded-[3rem] text-white shadow-2xl space-y-8 flex flex-col justify-between overflow-hidden relative">
+           <div className="absolute top-0 right-0 p-12 opacity-5 translate-x-1/4 -translate-y-1/4">
+              <Activity className="w-64 h-64" />
+           </div>
+           <div className="relative z-10">
+              <h3 className="text-xl font-black uppercase tracking-tighter mb-1">Activity Stream</h3>
+              <p className="text-slate-400 text-xs font-bold mb-8">Real-time terminal event log</p>
+
+              <div className="space-y-6">
+                 {adminActions.slice(0, 5).map(log => (
+                    <div key={log.id} className="flex gap-4 group">
+                       <div className="relative flex flex-col items-center">
+                          <div className="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)] group-last:bg-green-500 group-last:shadow-[0_0_15px_rgba(34,197,94,0.5)]" />
+                          <div className="w-0.5 h-full bg-white/10 group-last:hidden mt-2" />
+                       </div>
+                       <div className="pb-4">
+                          <p className="text-xs font-black text-white/90 uppercase tracking-widest">{log.actionType.replace(/_/g, ' ')}</p>
+                          <p className="text-[10px] text-slate-400 font-bold mb-1">{log.adminName} • {new Date(log.timestamp).toLocaleTimeString()}</p>
+                          <p className="text-[10px] text-blue-400 font-mono font-bold truncate w-40">{log.shipmentId || log.batchId}</p>
+                       </div>
+                    </div>
+                 ))}
+              </div>
+           </div>
+           <button onClick={() => navigate('/admin/audit')} className="w-full h-14 bg-white/5 hover:bg-white/10 text-white font-black uppercase tracking-widest rounded-2xl transition-all flex items-center justify-center gap-2 text-xs">
+              View Full Audit <ChevronRight className="w-4 h-4" />
+           </button>
         </div>
       </div>
     </div>
@@ -95,54 +207,92 @@ function WeightAlerts() {
     const filtered = weightAlerts.filter(a => a.status === tab);
 
     const handleAction = async (id: string, action: 'resolved' | 'ignored') => {
-        const reason = window.prompt('Reason for decision:');
+        const reason = window.prompt('Audit Reason for Decision:');
         if (reason) {
             try {
                 await resolveWeightAlert(id, user!.id, action, reason);
-                toast.success('Alert resolved');
-            } catch { toast.error('Failed'); }
+                toast.success('Alert record updated');
+            } catch { toast.error('Command failed'); }
         }
     };
 
     return (
-        <div className="max-w-6xl space-y-6">
-            <h1 className="text-2xl font-bold">Security Oversight: Weight Alerts</h1>
-            <div className="flex gap-2">
-                {['pending', 'resolved', 'ignored'].map(t => (
-                    <button key={t} onClick={() => setTab(t as any)} className={`px-4 py-2 rounded-xl text-xs font-bold capitalize transition-all ${tab === t ? 'bg-[#1B4332] text-white' : 'bg-white border text-gray-500'}`}>{t}</button>
-                ))}
+        <div className="max-w-6xl mx-auto space-y-8 pb-20">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div>
+                   <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white uppercase">Security Oversight</h1>
+                   <p className="text-slate-400 font-bold tracking-tight">Weight discrepancy detection & resolution terminal</p>
+                </div>
+                <div className="bg-slate-100 dark:bg-white/5 p-1 rounded-2xl flex gap-1">
+                    {['pending', 'resolved', 'ignored'].map(t => (
+                        <button
+                            key={t}
+                            onClick={() => setTab(t as any)}
+                            className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                                tab === t
+                                ? 'bg-blue-600 text-white shadow-lg'
+                                : 'text-slate-400 hover:text-slate-600 dark:hover:text-white'
+                            }`}
+                        >
+                            {t}
+                        </button>
+                    ))}
+                </div>
             </div>
-            <div className="bg-white border rounded-3xl overflow-hidden shadow-sm">
-                <table className="w-full text-left">
-                    <thead className="bg-[#F8F9FA] border-b">
-                        <tr className="text-[10px] font-bold uppercase text-gray-400">
-                            <th className="px-6 py-4">Tracking ID</th>
-                            <th className="px-6 py-4">Cairo Wt</th>
-                            <th className="px-6 py-4">Nigeria Wt</th>
-                            <th className="px-6 py-4">Discrepancy</th>
-                            <th className="px-6 py-4 text-right">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                        {filtered.map(a => (
-                            <tr key={a.id} className="hover:bg-gray-50/50 transition-colors">
-                                <td className="px-6 py-4 font-mono font-bold text-sm">{a.trackingNumber}</td>
-                                <td className="px-6 py-4 text-sm font-medium">{a.initialWeight}kg</td>
-                                <td className="px-6 py-4 text-sm font-medium">{a.finalWeight}kg</td>
-                                <td className="px-6 py-4"><span className="px-2 py-1 bg-red-50 text-red-600 rounded-lg font-bold">-{a.discrepancy.toFixed(1)}kg ({((a.discrepancy/a.initialWeight)*100).toFixed(1)}%)</span></td>
-                                <td className="px-6 py-4 text-right">
-                                    {tab === 'pending' ? (
-                                        <div className="flex justify-end gap-2">
-                                            <button onClick={() => handleAction(a.id, 'ignored')} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X className="w-4 h-4" /></button>
-                                            <button onClick={() => handleAction(a.id, 'resolved')} className="p-2 bg-green-50 text-green-600 hover:bg-green-600 hover:text-white rounded-lg transition-all"><CheckCircle className="w-4 h-4" /></button>
-                                        </div>
-                                    ) : <span className="text-[10px] font-bold uppercase text-gray-400 italic">"{a.reason}"</span>}
-                                </td>
+
+            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5 rounded-[3rem] overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                        <thead className="bg-slate-50 dark:bg-white/5 border-b border-slate-100 dark:border-white/5">
+                            <tr className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">
+                                <th className="px-10 py-6">Tracking Protocol</th>
+                                <th className="px-10 py-6">Origin Wt (Cairo)</th>
+                                <th className="px-10 py-6">Final Wt (NG)</th>
+                                <th className="px-10 py-6">Variance</th>
+                                <th className="px-10 py-6 text-right">Protocol Action</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
-                {filtered.length === 0 && <div className="py-20 text-center text-gray-400">No {tab} alerts</div>}
+                        </thead>
+                        <tbody className="divide-y divide-slate-50 dark:divide-white/5">
+                            {filtered.map(a => (
+                                <tr key={a.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
+                                    <td className="px-10 py-8 font-mono font-black text-sm text-blue-600">
+                                       <div className="flex gap-2"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Secure Entry</span></div>
+                                       {a.trackingNumber}
+                                    </td>
+                                    <td className="px-10 py-8 font-black text-slate-700 dark:text-slate-300">{a.initialWeight}kg</td>
+                                    <td className="px-10 py-8 font-black text-slate-700 dark:text-slate-300">{a.finalWeight}kg</td>
+                                    <td className="px-10 py-8">
+                                       <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-50 dark:bg-red-500/10 text-red-600 rounded-xl font-black text-xs">
+                                          -{a.discrepancy.toFixed(1)}kg ({((a.discrepancy/a.initialWeight)*100).toFixed(1)}%)
+                                       </div>
+                                    </td>
+                                    <td className="px-10 py-8 text-right">
+                                        {tab === 'pending' ? (
+                                            <div className="flex justify-end gap-3">
+                                                <button onClick={() => handleAction(a.id, 'ignored')} className="h-12 px-6 border-2 border-slate-200 dark:border-white/10 text-slate-400 font-black uppercase text-[10px] rounded-xl hover:bg-slate-100 transition-all">Ignore</button>
+                                                <button onClick={() => handleAction(a.id, 'resolved')} className="h-12 px-6 bg-blue-600 text-white font-black uppercase text-[10px] rounded-xl shadow-lg shadow-blue-600/20 active:scale-95 transition-all">Resolve Case</button>
+                                            </div>
+                                        ) : (
+                                           <div className="text-right">
+                                              <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Final Decision Reason</p>
+                                              <p className="text-xs font-bold text-slate-600 dark:text-slate-400 italic">"{a.reason}"</p>
+                                           </div>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                    {filtered.length === 0 && (
+                       <div className="py-32 text-center space-y-4">
+                          <CheckCircle className="w-16 h-16 text-green-500/20 mx-auto" />
+                          <div>
+                             <p className="text-xl font-black text-slate-300 uppercase tracking-tighter">No Breach Detected</p>
+                             <p className="text-sm font-bold text-slate-400">All inventory weights within tolerance levels</p>
+                          </div>
+                       </div>
+                    )}
+                </div>
             </div>
         </div>
     );
@@ -153,38 +303,49 @@ function ShipmentDetailsModal({ shipment, onClose, onAction }: { shipment: Shipm
   const [paidAmt, setPaidAmt] = useState(shipment.paidAmount.toString());
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white rounded-[2.5rem] w-full max-w-2xl overflow-hidden border shadow-2xl animate-in zoom-in-95 duration-300">
-        <div className="p-8 border-b flex justify-between items-center bg-gray-50/50">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#0F172A]/95 backdrop-blur-xl animate-in fade-in duration-300">
+      <div className="bg-white dark:bg-slate-900 rounded-[3rem] w-full max-w-2xl overflow-hidden border border-white/10 shadow-2xl animate-in zoom-in-95 duration-500">
+        <div className="p-10 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-white/5">
             <div>
-                <h2 className="font-mono font-bold text-2xl text-[#1B4332]">{shipment.trackingNumber}</h2>
-                <p className="text-xs text-gray-400 uppercase font-bold tracking-widest">{shipment.destination} Branch Manifest</p>
+                <h2 className="font-mono font-black text-3xl text-blue-600 tracking-tighter mb-1">{shipment.trackingNumber}</h2>
+                <div className="flex gap-3"><DestinationBadge destination={shipment.destination} size="sm" /><StatusBadge status={shipment.status} size="sm" /></div>
             </div>
-            <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors"><X className="w-6 h-6 text-gray-400" /></button>
+            <button onClick={onClose} className="p-4 bg-white dark:bg-white/5 rounded-2xl shadow-sm hover:scale-110 active:scale-90 transition-all"><X className="w-6 h-6 text-slate-400" /></button>
         </div>
-        <div className="p-8 grid grid-cols-2 gap-8">
-           <div className="space-y-6">
-              <div className="space-y-1.5"><label className="text-[10px] font-bold uppercase text-gray-400">Override Status</label>
-                <div className="grid grid-cols-2 gap-2">
+        <div className="p-10 grid grid-cols-1 md:grid-cols-2 gap-10">
+           <div className="space-y-8">
+              <div className="space-y-3">
+                 <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-4">Terminal Status Override</label>
+                 <div className="grid grid-cols-2 gap-2">
                     {['received', 'shipped', 'arrived', 'delivered', 'on_hold', 'returned'].map(s => (
-                        <button key={s} onClick={() => { if(reason) onAction('override_status', { status: s, reason }); else toast.error('Reason mandatory'); }} className={`px-3 py-2 text-[10px] font-bold rounded-xl border transition-all ${shipment.status === s ? 'bg-[#1B4332] text-white border-[#1B4332]' : 'bg-white hover:border-[#1B4332]'}`}>{s.replace(/_/g, ' ')}</button>
+                        <button
+                           key={s}
+                           onClick={() => { if(reason) onAction('override_status', { status: s, reason }); else toast.error('Action Reason Mandatory'); }}
+                           className={`px-4 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl border-2 transition-all ${
+                              shipment.status === s
+                              ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20'
+                              : 'bg-transparent border-slate-100 dark:border-white/5 text-slate-400 hover:border-blue-600/50'
+                           }`}
+                        >
+                           {s.replace(/_/g, ' ')}
+                        </button>
                     ))}
-                </div>
+                 </div>
               </div>
-              <div className="space-y-1.5"><label className="text-[10px] font-bold uppercase text-gray-400">Financial Correction</label>
-                <div className="flex gap-2">
-                    <input type="number" value={paidAmt} onChange={e => setPaidAmt(e.target.value)} className="flex-1 h-10 border rounded-xl px-4 text-sm outline-none focus:border-[#1B4332]" />
-                    <button onClick={() => { if(reason) onAction('adjust_balance', { paidAmount: parseFloat(paidAmt), reason }); else toast.error('Reason mandatory'); }} className="px-4 bg-[#1B4332] text-white text-[10px] font-bold rounded-xl">Apply</button>
-                </div>
+              <div className="space-y-3">
+                 <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-4">Financial Correction ($)</label>
+                 <div className="flex gap-3">
+                    <input type="number" value={paidAmt} onChange={e => setPaidAmt(e.target.value)} className="flex-1 h-14 bg-slate-50 dark:bg-white/5 border-2 border-transparent focus:border-blue-600 rounded-2xl px-6 font-black text-xl outline-none transition-all" />
+                    <button onClick={() => { if(reason) onAction('adjust_balance', { paidAmount: parseFloat(paidAmt), reason }); else toast.error('Action Reason Mandatory'); }} className="h-14 px-8 bg-slate-900 dark:bg-white dark:text-slate-900 text-white font-black uppercase text-xs tracking-widest rounded-2xl shadow-xl transition-all active:scale-95">Update</button>
+                 </div>
               </div>
            </div>
-           <div className="space-y-6">
-              <div className="space-y-1.5"><label className="text-[10px] font-bold uppercase text-gray-400">Mandatory Action Reason</label>
-                <textarea value={reason} onChange={e => setReason(e.target.value)} placeholder="Why is this change being made? (Audit Requirement)" className="w-full h-32 p-4 border rounded-2xl text-sm outline-none focus:border-[#1B4332] bg-gray-50" />
+           <div className="space-y-8">
+              <div className="space-y-3">
+                 <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-4">Audit Mandate (Required)</label>
+                 <textarea value={reason} onChange={e => setReason(e.target.value)} placeholder="Provide high-fidelity context for this terminal override..." className="w-full h-44 p-6 bg-slate-50 dark:bg-white/5 border-2 border-transparent focus:border-blue-600 rounded-[2rem] text-sm font-bold outline-none transition-all resize-none" />
               </div>
-           <div className="pt-4 space-y-3">
-                  <button onClick={() => { if(window.confirm('IRREVERSIBLE: Delete this shipment?')) onAction('delete_shipment', { reason }); }} className="w-full h-12 bg-red-50 text-red-600 text-sm font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-red-600 hover:text-white transition-all"><Trash2 className="w-4 h-4" /> Permanent Delete</button>
-              </div>
+              <button onClick={() => { if(window.confirm('PROTOCOL WARNING: This will permanently purge this record from existence. Continue?')) onAction('delete_shipment', { reason }); }} className="w-full h-16 bg-red-50 text-red-600 font-black uppercase tracking-widest rounded-2xl flex items-center justify-center gap-3 hover:bg-red-600 hover:text-white transition-all shadow-lg shadow-red-600/5 active:scale-95"><Trash2 className="w-5 h-5" /> Purge Shipment</button>
            </div>
         </div>
       </div>
@@ -207,68 +368,93 @@ function AllShipments() {
       if (type === 'override_status') {
         await logAdminAction({ adminId: user.id, adminName: user.name, shipmentId: selectedShipment.id, actionType: 'override_status', oldValue: selectedShipment.status, newValue: data.status, reason: data.reason });
         await updateShipment(selectedShipment.id, { status: data.status });
-        toast.success('Override successful');
+        toast.success('System override successful');
       } else if (type === 'adjust_balance') {
         const newBalance = selectedShipment.totalAmount - data.paidAmount;
         await logAdminAction({ adminId: user.id, adminName: user.name, shipmentId: selectedShipment.id, actionType: 'adjust_balance', oldValue: selectedShipment.paidAmount.toString(), newValue: data.paidAmount.toString(), reason: data.reason });
         await updateShipment(selectedShipment.id, { paidAmount: data.paidAmount, balanceDue: newBalance });
-        toast.success('Adjustment applied');
       } else if (type === 'delete_shipment') {
         await logAdminAction({ adminId: user.id, adminName: user.name, shipmentId: selectedShipment.id, actionType: 'delete_shipment', oldValue: 'exists', newValue: 'deleted', reason: data.reason });
         await deleteShipment(selectedShipment.id);
-        toast.success('Deleted permanently');
+        toast.success('Inventory purged');
       }
       setSelectedShipment(null);
-    } catch { toast.error('Action failed'); }
+    } catch { toast.error('Terminal command rejected'); }
   };
 
   const handleBulkStatus = async () => {
-    const status = window.prompt('Enter status for all selected (e.g. shipped):');
+    const status = window.prompt('Terminal Instruction: Enter target status for batch:');
     if (status && selectedIds.length > 0) {
         try {
             await Promise.all(selectedIds.map(id => updateShipment(id, { status: status as any })));
-            toast.success(`Updated ${selectedIds.length} shipments`);
+            toast.success(`Updated ${selectedIds.length} protocols`);
             setSelectedIds([]);
-        } catch { toast.error('Bulk update failed'); }
+        } catch { toast.error('Bulk command failure'); }
     }
   };
 
   return (
-    <div className="max-w-6xl space-y-6">
-      <div className="flex justify-between items-center">
-          <div><h1 className="text-2xl font-bold">Inventory Control</h1><p className="text-xs text-gray-400">Management of all parcels in system</p></div>
-          <div className="flex gap-2">
+    <div className="max-w-6xl mx-auto space-y-8 pb-20">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div>
+             <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white uppercase">Inventory Control</h1>
+             <p className="text-slate-400 font-bold tracking-tight">Active monitoring of all parcels within the ecosystem</p>
+          </div>
+          <div className="flex gap-3 w-full md:w-auto">
             {selectedIds.length > 0 && (
-                <button onClick={handleBulkStatus} className="h-10 px-4 bg-orange-500 text-white text-xs font-bold rounded-xl shadow-lg flex items-center gap-2 animate-in zoom-in duration-200"><CheckCircle className="w-4 h-4" /> Bulk Status (${selectedIds.length})</button>
+                <button onClick={handleBulkStatus} className="h-14 px-6 bg-orange-500 text-white font-black uppercase text-xs tracking-widest rounded-2xl shadow-xl shadow-orange-500/20 flex items-center gap-2 animate-in zoom-in duration-300">
+                   <CheckCircle className="w-5 h-5" /> Bulk Command ({selectedIds.length})
+                </button>
             )}
-            <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A0AEC0]" /><input type="text" value={filter} onChange={e => setFilter(e.target.value)} placeholder="Tracking, sender, receiver..." className="h-10 pl-9 pr-4 border rounded-xl w-72 bg-white" /></div>
+            <div className="relative flex-1 md:w-80">
+               <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+               <input type="text" value={filter} onChange={e => setFilter(e.target.value)} placeholder="Tracking ID, sender, receiver..." className="w-full h-14 pl-14 pr-6 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-white/5 rounded-2xl font-bold text-sm focus:border-blue-600 outline-none transition-all shadow-sm" />
+            </div>
           </div>
       </div>
 
-      <div className="bg-white border rounded-3xl overflow-hidden shadow-sm">
-        <table className="w-full text-left">
-            <thead className="bg-[#F8F9FA] border-b">
-                <tr className="text-[10px] font-bold uppercase text-gray-400">
-                    <th className="px-6 py-4"><input type="checkbox" onChange={(e) => setSelectedIds(e.target.checked ? filtered.map(s => s.id) : [])} checked={selectedIds.length === filtered.length && filtered.length > 0} className="rounded" /></th>
-                    <th className="px-6 py-4">Tracking ID</th>
-                    <th className="px-6 py-4">Context</th>
-                    <th className="px-6 py-4">Status</th>
-                    <th className="px-6 py-4 text-right">Actions</th>
-                </tr>
-            </thead>
-            <tbody className="divide-y">
-                {filtered.map((s) => (
-                    <tr key={s.id} className="hover:bg-[#F8F9FA]/50 transition-colors group">
-                        <td className="px-6 py-4"><input type="checkbox" checked={selectedIds.includes(s.id)} onChange={(e) => setSelectedIds(prev => e.target.checked ? [...prev, s.id] : prev.filter(id => id !== s.id))} className="rounded" /></td>
-                        <td className="px-6 py-4 font-mono font-bold text-sm">{s.trackingNumber}</td>
-                        <td className="px-6 py-4 text-sm"><p className="font-medium text-gray-700">{s.senderName} → {s.receiverName}</p><p className="text-[10px] text-gray-400 font-bold">{s.weight}kg • {s.destination.toUpperCase()}</p></td>
-                        <td className="px-6 py-4"><div className="flex items-center gap-2"><StatusBadge status={s.status} size="sm" />{s.weightAlert && <AlertTriangle className="w-4 h-4 text-[#E53E3E] animate-pulse" />}</div></td>
-                        <td className="px-6 py-4 text-right"><button onClick={() => setSelectedShipment(s)} className="p-2 hover:bg-[#EDF2F7] rounded-xl text-gray-400 group-hover:text-[#1B4332]"><MoreVertical className="w-4 h-4" /></button></td>
-                    </tr>
-                ))}
-            </tbody>
-        </table>
-        {filtered.length === 0 && <div className="py-20 text-center text-gray-400">No shipments match your criteria</div>}
+      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5 rounded-[3rem] overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+           <table className="w-full text-left">
+               <thead className="bg-slate-50 dark:bg-white/5 border-b border-slate-100 dark:border-white/5">
+                   <tr className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">
+                       <th className="px-10 py-6"><input type="checkbox" onChange={(e) => setSelectedIds(e.target.checked ? filtered.map(s => s.id) : [])} checked={selectedIds.length === filtered.length && filtered.length > 0} className="rounded-lg w-5 h-5 accent-blue-600" /></th>
+                       <th className="px-10 py-6">Identity Protocol</th>
+                       <th className="px-10 py-6">Operational Context</th>
+                       <th className="px-10 py-6">Current Status</th>
+                       <th className="px-10 py-6 text-right">Access</th>
+                   </tr>
+               </thead>
+               <tbody className="divide-y divide-slate-50 dark:divide-white/5">
+                   {filtered.map((s) => (
+                       <tr key={s.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-all group">
+                           <td className="px-10 py-8"><input type="checkbox" checked={selectedIds.includes(s.id)} onChange={(e) => setSelectedIds(prev => e.target.checked ? [...prev, s.id] : prev.filter(id => id !== s.id))} className="rounded-lg w-5 h-5 accent-blue-600" /></td>
+                           <td className="px-10 py-8 font-mono font-black text-lg text-blue-600 tracking-tighter">{s.trackingNumber}</td>
+                           <td className="px-10 py-8">
+                              <p className="font-black text-slate-800 dark:text-slate-200 mb-1 leading-tight">{s.senderName} → {s.receiverName}</p>
+                              <div className="flex flex-wrap gap-2 items-center">
+                                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{s.weight}kg • </span>
+                                 <DestinationBadge destination={s.destination} size="sm" />
+                                 <PriorityChips labels={s.priorityLabels} size="sm" />
+                              </div>
+                           </td>
+                           <td className="px-10 py-8">
+                              <div className="flex items-center gap-3">
+                                 <StatusBadge status={s.status} size="sm" />
+                                 {s.weightAlert && <div className="w-8 h-8 bg-red-50 dark:bg-red-500/10 rounded-xl flex items-center justify-center"><AlertTriangle className="w-4 h-4 text-red-600 animate-pulse" /></div>}
+                              </div>
+                           </td>
+                           <td className="px-10 py-8 text-right">
+                              <button onClick={() => setSelectedShipment(s)} className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl text-slate-400 group-hover:text-blue-600 group-hover:bg-blue-50 dark:group-hover:bg-blue-500/10 transition-all">
+                                 <MoreVertical className="w-5 h-5" />
+                              </button>
+                           </td>
+                       </tr>
+                   ))}
+               </tbody>
+           </table>
+        </div>
+        {filtered.length === 0 && <div className="py-32 text-center text-slate-400 font-bold uppercase tracking-widest">No active protocols found</div>}
       </div>
       {selectedShipment && <ShipmentDetailsModal shipment={selectedShipment} onClose={() => setSelectedShipment(null)} onAction={handleAdminAction} />}
     </div>
@@ -288,37 +474,58 @@ function AuditLogs() {
   );
 
   return (
-    <div className="max-w-6xl space-y-6">
+    <div className="max-w-6xl mx-auto space-y-8 pb-20">
       <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Immutable Audit Trail</h1>
-          <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" /><input placeholder="Search logs..." value={search} onChange={e => setSearch(e.target.value)} className="h-10 pl-9 pr-4 border rounded-xl w-64 bg-white" /></div>
+          <div>
+             <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white uppercase">Immutable Audit Trail</h1>
+             <p className="text-slate-400 font-bold tracking-tight">Full-spectrum transparency of system overrides & adjustments</p>
+          </div>
+          <div className="relative w-80">
+             <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+             <input placeholder="Search audit logs..." value={search} onChange={e => setSearch(e.target.value)} className="w-full h-14 pl-14 pr-6 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-white/5 rounded-2xl font-bold text-sm focus:border-blue-600 outline-none transition-all shadow-sm" />
+          </div>
       </div>
-      <div className="bg-white border rounded-3xl overflow-hidden shadow-sm">
-        <table className="w-full text-left">
-            <thead className="bg-[#F8F9FA] border-b">
-                <tr className="text-[10px] font-bold uppercase text-gray-400">
-                    <th className="px-6 py-4">Admin Name</th>
-                    <th className="px-6 py-4">Action Event</th>
-                    <th className="px-6 py-4">Target ID</th>
-                    <th className="px-6 py-4">Change Log</th>
-                    <th className="px-6 py-4">Reason</th>
-                    <th className="px-6 py-4">Timestamp</th>
-                </tr>
-            </thead>
-            <tbody className="divide-y text-sm">
-                {filtered.map(log => (
-                    <tr key={log.id} className="hover:bg-gray-50/50 transition-colors">
-                        <td className="px-6 py-4 font-bold text-gray-800">{log.adminName}</td>
-                        <td className="px-6 py-4"><span className="px-2 py-1 bg-gray-100 rounded text-[10px] font-bold uppercase">{log.actionType.replace(/_/g, ' ')}</span></td>
-                        <td className="px-6 py-4 font-mono font-bold text-[#1B4332]">{log.shipmentId || log.batchId || '-'}</td>
-                        <td className="px-6 py-4"><p className="text-[10px] text-gray-400 line-through truncate w-24">{log.oldValue}</p><p className="text-[10px] font-bold text-green-600 truncate w-24">{log.newValue}</p></td>
-                        <td className="px-6 py-4 text-[#4A5568] italic">"{log.reason}"</td>
-                        <td className="px-6 py-4 text-xs text-gray-400">{new Date(log.timestamp).toLocaleString()}</td>
-                    </tr>
-                ))}
-            </tbody>
-        </table>
-        {filtered.length === 0 && <div className="py-20 text-center text-gray-400">No logs found</div>}
+
+      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5 rounded-[3rem] overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+           <table className="w-full text-left">
+               <thead className="bg-slate-50 dark:bg-white/5 border-b border-slate-100 dark:border-white/5">
+                   <tr className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">
+                       <th className="px-10 py-6">Admin Intelligence</th>
+                       <th className="px-10 py-6">Event Protocol</th>
+                       <th className="px-10 py-6">Target ID</th>
+                       <th className="px-10 py-6">Delta Log</th>
+                       <th className="px-10 py-6">Mandate Reason</th>
+                       <th className="px-10 py-6 text-right">Timestamp</th>
+                   </tr>
+               </thead>
+               <tbody className="divide-y divide-slate-50 dark:divide-white/5 text-sm">
+                   {filtered.map(log => (
+                       <tr key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-all">
+                           <td className="px-10 py-8 font-black text-slate-800 dark:text-slate-200 uppercase tracking-tighter">{log.adminName}</td>
+                           <td className="px-10 py-8">
+                              <span className="px-3 py-1.5 bg-slate-100 dark:bg-white/5 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                 {log.actionType.replace(/_/g, ' ')}
+                              </span>
+                           </td>
+                           <td className="px-10 py-8 font-mono font-black text-blue-600 tracking-tighter">{log.shipmentId || log.batchId || '-'}</td>
+                           <td className="px-10 py-8">
+                              <div className="space-y-1">
+                                 <p className="text-[10px] text-slate-300 font-bold line-through truncate w-32">{log.oldValue}</p>
+                                 <p className="text-[10px] font-black text-green-500 uppercase tracking-widest truncate w-32">{log.newValue}</p>
+                              </div>
+                           </td>
+                           <td className="px-10 py-8 text-slate-500 font-bold italic text-xs leading-relaxed max-w-xs">"{log.reason}"</td>
+                           <td className="px-10 py-8 text-right">
+                              <p className="text-xs font-black text-slate-900 dark:text-white uppercase mb-0.5">{new Date(log.timestamp).toLocaleDateString()}</p>
+                              <p className="text-[10px] font-bold text-slate-400">{new Date(log.timestamp).toLocaleTimeString()}</p>
+                           </td>
+                       </tr>
+                   ))}
+               </tbody>
+           </table>
+        </div>
+        {filtered.length === 0 && <div className="py-32 text-center text-slate-400 font-bold uppercase tracking-widest">No audit data captured</div>}
       </div>
     </div>
   );
@@ -326,16 +533,17 @@ function AuditLogs() {
 
 export default function AdminDashboard() {
   return (
-    <div className="min-h-screen bg-[#F8F9FA]">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0B0F19]">
       <Navbar />
       <div className="flex pt-14">
         <Sidebar />
-        <main className="flex-1 p-4 md:p-8 overflow-auto min-h-[calc(100vh-56px)]">
+        <main className="flex-1 p-8 md:p-12 overflow-auto min-h-[calc(100vh-56px)]">
           <Routes>
             <Route path="/" element={<Overview />} />
             <Route path="/new-shipment" element={<CreateShipment />} />
             <Route path="/shipments" element={<AllShipments />} />
-
+            <Route path="/sacks" element={<SackManager />} />
+            <Route path="/search" element={<GlobalSearch />} />
             <Route path="/staff" element={<StaffManagement />} />
             <Route path="/alerts" element={<WeightAlerts />} />
             <Route path="/audit" element={<AuditLogs />} />
