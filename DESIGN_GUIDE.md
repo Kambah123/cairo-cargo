@@ -226,3 +226,10 @@ For developer consistency, use the following hex codes for status chips and dest
 - **Awaiting Flight (Yellow)**: #D69E2E (Text), #FEF3C7 (BG)
 - **On Hold (Red)**: #E53E3E (Text), #FED7D7 (BG)
 - **Shipped (Light Blue)**: #3182CE (Text), #EBF8FF (BG)
+
+## 33. RECENT ARCHITECTURAL UPGRADES
+- **Global Search Protocol**: An "always-on" master intel search is integrated into the primary navigation, enabling instant tracking across IDs, names, and phone numbers.
+- **High-Fidelity "Dark Navy" Mode**: Standardized on a premium `#0B0F19` background for all operational dashboards to reduce eye strain and communicate institutional professionalism.
+- **Vertical Lifecycle Stepper**: Converted horizontal tracking to a vertical UI, optimized for mobile readability and accommodating granular "Protocol Verifications".
+- **Dynamic Quick-Action Hubs**: Every terminal (Cairo, Nigeria, Admin) features a "Command Center" row for single-tap access to primary mission tasks (New Parcel, Sack Console, Arrival Scan).
+- **Mobile Glass-morphism Navigation**: Replaced static bottom bars with a floating, blurred-glass navigation system for Android/Tablet interfaces, maximizing usable screen estate.

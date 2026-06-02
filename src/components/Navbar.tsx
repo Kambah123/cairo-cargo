@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { Package, Menu, X, LogOut, User, ChevronDown } from 'lucide-react';
+import { Package, Menu, X, LogOut, User, ChevronDown, Search } from 'lucide-react';
 import type { UserRole } from '@/types';
 
 export default function Navbar() {
@@ -20,48 +20,54 @@ export default function Navbar() {
 
   const roleLinks: Record<UserRole, { label: string; href: string }[]> = {
     cairo_staff: [
-      { label: 'Create Shipment', href: '/cairo' },
-      { label: 'My Shipments', href: '/cairo/shipments' },
-      { label: 'Batch Manager', href: '/cairo/batches' },
+      { label: 'Dashboard', href: '/cairo' },
+      { label: 'Create', href: '/cairo' },
+      { label: 'Sacks', href: '/cairo/batches' },
     ],
     kano_staff: [
       { label: 'Arrivals', href: '/nigeria' },
       { label: 'Deliveries', href: '/nigeria/deliveries' },
-      { label: 'Pickup Log', href: '/nigeria/pickups' },
     ],
     abuja_staff: [
       { label: 'Arrivals', href: '/nigeria' },
       { label: 'Deliveries', href: '/nigeria/deliveries' },
-      { label: 'Pickup Log', href: '/nigeria/pickups' },
     ],
     admin: [
-      { label: 'New Shipment', href: '/admin/new-shipment' },
       { label: 'Dashboard', href: '/admin' },
-      { label: 'All Shipments', href: '/admin/shipments' },
-      { label: 'Analytics', href: '/admin/analytics' },
-      { label: 'Staff Management', href: '/admin/staff' },
+      { label: 'Shipments', href: '/admin/shipments' },
+      { label: 'Sacks', href: '/admin/sacks' },
+      { label: 'Audit', href: '/admin/audit' },
     ],
+  };
+
+  const getSearchPath = () => {
+    if (!user) return '/login';
+    if (user.role === 'admin') return '/admin/search';
+    if (user.role === 'cairo_staff') return '/cairo/search';
+    return '/nigeria/search';
   };
 
   const links = isPublicPage && !isAuthenticated ? publicLinks : (user ? roleLinks[user.role] || [] : []);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-[#E2E8F0] h-14">
-      <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2 shrink-0">
-          <img src="/logo-icon.png" alt="CargoFlow" className="w-7 h-7" />
-          <span className="text-[#1B4332] font-bold text-lg tracking-tight">CargoFlow</span>
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0B0F19] border-b border-white/5 h-16 shadow-2xl">
+      <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-3 shrink-0 group">
+          <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/20 group-hover:scale-110 transition-transform">
+             <Package className="w-6 h-6 text-white" />
+          </div>
+          <span className="text-white font-black text-xl tracking-tighter uppercase">Cargo<span className="text-blue-500">Flow</span></span>
         </Link>
 
-        <div className="hidden md:flex items-center gap-1">
+        <div className="hidden md:flex items-center gap-2">
           {links.map((link) => (
             <Link
               key={link.href}
               to={link.href}
-              className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+              className={`px-4 py-2 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all ${
                 location.pathname === link.href
-                  ? 'text-[#1B4332] bg-[#EDF2F7]'
-                  : 'text-[#4A5568] hover:text-[#1B4332] hover:bg-[#EDF2F7]/50'
+                  ? 'text-white bg-white/10'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
               }`}
             >
               {link.label}
@@ -69,27 +75,39 @@ export default function Navbar() {
           ))}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
+          {isAuthenticated && (
+            <Link
+              to={getSearchPath()}
+              className="p-3 text-slate-400 hover:text-white hover:bg-white/5 rounded-2xl transition-all"
+            >
+              <Search className="w-5 h-5" />
+            </Link>
+          )}
+
           {isAuthenticated && user ? (
             <div className="relative">
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-[#EDF2F7] transition-colors"
+                className="flex items-center gap-3 p-1.5 pr-3 rounded-2xl bg-white/5 hover:bg-white/10 transition-all border border-white/5"
               >
-                <div className="w-8 h-8 rounded-full bg-[#1B4332] flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/20">
                   <User className="w-4 h-4 text-white" />
                 </div>
-                <span className="hidden sm:block text-sm font-medium text-[#1A202C]">{user.name}</span>
-                <ChevronDown className="w-4 h-4 text-[#A0AEC0]" />
+                <div className="hidden sm:block text-left">
+                  <p className="text-xs font-black text-white tracking-tight leading-none uppercase">{user.name}</p>
+                  <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">{user.role.replace('_', ' ')}</p>
+                </div>
+                <ChevronDown className="w-4 h-4 text-slate-500" />
               </button>
 
               {userMenuOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
-                  <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-[#E2E8F0] py-1 z-50">
-                    <div className="px-3 py-2 border-b border-[#E2E8F0]">
-                      <p className="text-sm font-medium text-[#1A202C]">{user.name}</p>
-                      <p className="text-xs text-[#A0AEC0] capitalize">{user.role.replace('_', ' ')}</p>
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-[#161B22] rounded-[2rem] shadow-2xl border border-white/5 p-2 z-50 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="px-4 py-3 border-b border-white/5 mb-1">
+                      <p className="text-xs font-black text-white uppercase tracking-widest">{user.name}</p>
+                      <p className="text-[10px] text-slate-500 font-bold mt-1 uppercase tracking-tighter">{user.username}</p>
                     </div>
                     <button
                       onClick={() => {
@@ -97,10 +115,10 @@ export default function Navbar() {
                         navigate('/');
                         setUserMenuOpen(false);
                       }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#E53E3E] hover:bg-[#FED7D7]/30 transition-colors"
+                      className="w-full flex items-center gap-3 px-4 py-3 text-xs font-black text-red-500 hover:bg-red-500/10 rounded-2xl transition-all uppercase tracking-widest"
                     >
                       <LogOut className="w-4 h-4" />
-                      Logout
+                      Secure Logout
                     </button>
                   </div>
                 </>
@@ -109,42 +127,41 @@ export default function Navbar() {
           ) : (
             <Link
               to="/login"
-              className="hidden md:flex items-center gap-2 px-4 py-2 bg-[#1B4332] text-white text-sm font-medium rounded-md hover:bg-[#2D6A4F] transition-colors"
+              className="px-6 py-3 bg-blue-600 text-white text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-blue-700 shadow-xl shadow-blue-600/20 transition-all active:scale-95"
             >
-              <Package className="w-4 h-4" />
-              Staff Login
+              Access Portal
             </Link>
           )}
 
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden p-2 rounded-md hover:bg-[#EDF2F7] transition-colors"
+            className="md:hidden p-3 bg-white/5 rounded-2xl text-slate-400 hover:text-white transition-all"
           >
-            {mobileOpen ? <X className="w-5 h-5 text-[#1A202C]" /> : <Menu className="w-5 h-5 text-[#1A202C]" />}
+            {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
         </div>
       </div>
 
       {mobileOpen && (
         <>
-          <div className="fixed inset-0 bg-black/40 z-40 md:hidden" onClick={() => setMobileOpen(false)} />
-          <div className="fixed right-0 top-0 bottom-0 w-72 bg-white z-50 shadow-xl md:hidden">
-            <div className="flex items-center justify-between p-4 border-b border-[#E2E8F0]">
-              <span className="font-bold text-[#1B4332]">Menu</span>
-              <button onClick={() => setMobileOpen(false)} className="p-2 rounded-md hover:bg-[#EDF2F7]">
-                <X className="w-5 h-5" />
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden" onClick={() => setMobileOpen(false)} />
+          <div className="fixed right-4 top-20 bottom-4 w-72 bg-[#161B22] z-50 shadow-2xl rounded-[2.5rem] border border-white/5 overflow-hidden animate-in slide-in-from-right duration-300">
+            <div className="flex items-center justify-between p-6 border-b border-white/5 bg-white/5">
+              <span className="font-black text-white uppercase tracking-widest text-xs">System Control</span>
+              <button onClick={() => setMobileOpen(false)} className="p-2 rounded-xl hover:bg-white/10">
+                <X className="w-5 h-5 text-slate-400" />
               </button>
             </div>
-            <div className="p-2">
+            <div className="p-4 space-y-2">
               {links.map((link) => (
                 <Link
                   key={link.href}
                   to={link.href}
                   onClick={() => setMobileOpen(false)}
-                  className={`block px-3 py-2.5 text-sm font-medium rounded-md transition-colors ${
+                  className={`flex items-center px-5 py-4 text-xs font-black uppercase tracking-[0.2em] rounded-2xl transition-all ${
                     location.pathname === link.href
-                      ? 'text-[#1B4332] bg-[#EDF2F7]'
-                      : 'text-[#4A5568] hover:text-[#1B4332] hover:bg-[#EDF2F7]/50'
+                      ? 'text-white bg-blue-600 shadow-lg shadow-blue-600/20'
+                      : 'text-slate-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
                   {link.label}
@@ -157,7 +174,7 @@ export default function Navbar() {
                     navigate('/');
                     setMobileOpen(false);
                   }}
-                  className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-[#E53E3E] hover:bg-[#FED7D7]/30 rounded-md mt-2"
+                  className="w-full flex items-center gap-3 px-5 py-4 text-xs font-black text-red-500 hover:bg-red-500/10 rounded-2xl mt-4 uppercase tracking-[0.2em]"
                 >
                   <LogOut className="w-4 h-4" />
                   Logout
