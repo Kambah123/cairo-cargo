@@ -11,9 +11,9 @@ import CreateShipment from '@/components/CreateShipment';
 import SackManager from '@/pages/SackManager';
 import GlobalSearch from '@/pages/GlobalSearch';
 import {
-  LayoutDashboard, Package, Users, History, ChevronRight, Search,
-  MoreVertical, Trash2, X, AlertTriangle, CheckCircle,
-  ShieldAlert, Plus, Layers, DollarSign, ArrowUpRight, ArrowDownRight, Activity, CreditCard, TrendingUp, LogOut
+  Package, Users, History, ChevronRight, Search,
+  MoreVertical, X, AlertTriangle, CheckCircle,
+  ShieldAlert, Plus, Layers, ArrowUpRight, ArrowDownRight, Activity, TrendingUp, LogOut
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Shipment } from '@/types';
