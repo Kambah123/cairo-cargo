@@ -57,9 +57,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
-    events.forEach(event => document.addEventListener(event, resetInactivityTimer));
+    const reset = () => resetInactivityTimer();
+    events.forEach(event => document.addEventListener(event, reset));
     return () => {
-      events.forEach(event => document.removeEventListener(event, resetInactivityTimer));
+      events.forEach(event => document.removeEventListener(event, reset));
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, [resetInactivityTimer]);
@@ -130,12 +131,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (signInError) throw signInError;
 
       if (signInData.user) {
-        const ipResponse = await fetch('https://api.ipify.org?format=json').catch(() => null);
-        const ipData = ipResponse ? await ipResponse.json() : { ip: 'unknown' };
+        let userIp = 'unknown';
+        try {
+          // Use a very short timeout and catch all errors for IP fetch
+          // This prevents "Load failed" from breaking the login flow
+          const controller = new AbortController();
+          const id = setTimeout(() => controller.abort(), 1500);
+
+          const ipResponse = await fetch('https://api.ipify.org?format=json', { signal: controller.signal })
+            .catch(() => null);
+
+          clearTimeout(id);
+
+          if (ipResponse && ipResponse.ok) {
+            const ipData = await ipResponse.json().catch(() => ({}));
+            userIp = ipData.ip || 'unknown';
+          }
+        } catch (e) {
+          console.warn('IP fetch failed, continuing login...', e);
+        }
 
         await supabase.from('profiles').update({
           last_login_at: new Date().toISOString(),
-          last_login_ip: ipData.ip
+          last_login_ip: userIp
         }).eq('id', signInData.user.id);
 
         const { data: profile } = await supabase
