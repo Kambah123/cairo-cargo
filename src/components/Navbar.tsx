@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { Package, Menu, X, LogOut, User, ChevronDown, Search } from 'lucide-react';
+import { Package, Menu, X, LogOut, User, ChevronDown, Search, Lock } from 'lucide-react';
 import type { UserRole } from '@/types';
 
 export default function Navbar() {
@@ -14,8 +14,10 @@ export default function Navbar() {
   const isPublicPage = location.pathname === '/';
 
   const publicLinks = [
+    { label: 'Home', href: '/' },
     { label: 'Track Shipment', href: '/' },
-    { label: 'Staff Login', href: '/login' },
+    { label: 'Shipping Guide', href: '/shipping-guide' },
+    { label: 'Contact Us', href: '/contact' },
   ];
 
   const roleLinks: Record<UserRole, { label: string; href: string }[]> = {
@@ -53,10 +55,10 @@ export default function Navbar() {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-slate-100 h-16 shadow-sm">
       <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
         <Link to="/" className="flex items-center gap-3 shrink-0 group">
-          <div className="w-10 h-10 bg-[#1B4332] rounded-2xl flex items-center justify-center shadow-lg shadow-[#1B4332]/20 group-hover:scale-110 transition-transform">
-             <Package className="w-6 h-6 text-white" />
+          <div className="w-8 h-8 xs:w-10 xs:h-10 bg-[#1B4332] rounded-2xl flex items-center justify-center shadow-lg shadow-[#1B4332]/20 group-hover:scale-110 transition-transform">
+             <Package className="w-5 h-5 xs:w-6 xs:h-6 text-white" />
           </div>
-          <span className="text-[#1B4332] font-black text-xl tracking-tighter uppercase">Cargo<span className="text-emerald-600">Flow</span></span>
+          <span className="text-[#1B4332] font-black text-lg xs:text-xl tracking-tighter uppercase">Cargo<span className="text-emerald-600">Flow</span></span>
         </Link>
 
         <div className="hidden md:flex items-center gap-2">
@@ -127,7 +129,7 @@ export default function Navbar() {
           ) : (
             <Link
               to="/login"
-              className="px-6 py-3 bg-[#1B4332] text-white text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-[#2D6A4F] shadow-xl shadow-[#1B4332]/20 transition-all active:scale-95"
+              className="hidden md:inline-flex px-6 py-3 bg-[#1B4332] text-white text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-[#2D6A4F] shadow-xl shadow-[#1B4332]/20 transition-all active:scale-95"
             >
               Access Portal
             </Link>
@@ -155,7 +157,7 @@ export default function Navbar() {
             <div className="p-4 space-y-2">
               {links.map((link) => (
                 <Link
-                  key={link.href}
+                  key={link.label + link.href}
                   to={link.href}
                   onClick={() => setMobileOpen(false)}
                   className={`flex items-center px-5 py-4 text-xs font-black uppercase tracking-[0.2em] rounded-2xl transition-all ${
@@ -167,6 +169,19 @@ export default function Navbar() {
                   {link.label}
                 </Link>
               ))}
+
+              {!isAuthenticated && isPublicPage && (
+                <div className="pt-4 mt-2 border-t border-slate-100">
+                  <Link
+                    to="/login"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center justify-between px-5 py-4 text-xs font-black uppercase tracking-[0.2em] rounded-2xl transition-all bg-[#1B4332] text-white hover:bg-[#2D6A4F] shadow-lg shadow-[#1B4332]/20"
+                  >
+                    <span>Staff Access</span>
+                    <Lock className="w-4 h-4" />
+                  </Link>
+                </div>
+              )}
               {isAuthenticated && (
                 <button
                   onClick={() => {
