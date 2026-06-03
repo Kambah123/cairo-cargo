@@ -46,7 +46,7 @@ export default function ChangePassword() {
     <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center p-6">
       <div className="w-full max-w-md bg-white rounded-[2.5rem] border shadow-xl p-10 space-y-8">
         <div className="text-center space-y-2">
-            <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto text-blue-600 mb-4">
+            <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto text-emerald-600 mb-4">
                 <ShieldCheck className="w-8 h-8" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900">Security Update</h1>

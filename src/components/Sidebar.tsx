@@ -31,7 +31,7 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className="hidden md:flex w-[300px] flex-col bg-[#0B0F19] border-r border-white/5 h-[calc(100vh-64px)] sticky top-16">
+    <aside className="hidden md:flex w-[300px] flex-col bg-white border-r border-slate-100 h-[calc(100vh-64px)] sticky top-16 shadow-sm">
       <nav className="flex-1 p-6 space-y-2">
         {items.map((item) => (
            <button
@@ -39,8 +39,8 @@ export default function Sidebar() {
             onClick={() => navigate(item.path)}
             className={`w-full flex items-center gap-4 px-6 py-4 rounded-[2rem] text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${
               location.pathname === item.path
-                ? 'bg-blue-600 text-white shadow-2xl shadow-blue-600/30'
-                : 'text-slate-500 hover:text-white hover:bg-white/5'
+                ? 'bg-[#1B4332] text-white shadow-2xl shadow-[#1B4332]/30'
+                : 'text-slate-500 hover:text-[#1B4332] hover:bg-slate-50'
             }`}
            >
              <item.icon className="w-5 h-5" />
@@ -48,8 +48,8 @@ export default function Sidebar() {
            </button>
         ))}
       </nav>
-      <div className="p-6 border-t border-white/5">
-        <button onClick={() => { logout(); navigate('/'); }} className="w-full flex items-center gap-4 px-6 py-4 rounded-[2rem] text-[11px] font-black uppercase tracking-[0.2em] text-red-500 hover:bg-red-500/10 transition-all">
+      <div className="p-6 border-t border-slate-100">
+        <button onClick={() => { logout(); navigate('/'); }} className="w-full flex items-center gap-4 px-6 py-4 rounded-[2rem] text-[11px] font-black uppercase tracking-[0.2em] text-red-500 hover:bg-red-50 transition-all">
           <LogOut className="w-5 h-5" /> Secure Exit
         </button>
       </div>

@@ -243,7 +243,7 @@ export default function CreateShipment({ initialData, onComplete }: { initialDat
              <div className="space-y-4">
                 <div className="space-y-1.5">
                    <label className="text-[10px] font-black uppercase text-gray-400 ml-4">Total Quote ($)</label>
-                   <input required type="number" inputMode="numeric" placeholder="0" value={formData.totalAmount} onChange={e => updateField('totalAmount', e.target.value)} className="w-full h-14 px-6 border-2 rounded-2xl bg-gray-50/50 focus:bg-white focus:border-[#1B4332] outline-none transition-all font-black text-2xl text-blue-600" />
+                   <input required type="number" inputMode="numeric" placeholder="0" value={formData.totalAmount} onChange={e => updateField('totalAmount', e.target.value)} className="w-full h-14 px-6 border-2 rounded-2xl bg-gray-50/50 focus:bg-white focus:border-[#1B4332] outline-none transition-all font-black text-2xl text-[#1B4332]" />
                 </div>
 
                 <div className="space-y-3">
