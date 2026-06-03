@@ -151,8 +151,8 @@ function MyShipments() {
   }, [shipments, searchTerm, statusFilter, user]);
 
   const handleDuplicate = (s: Shipment) => {
-    const { id, trackingNumber, createdAt, updatedAt, batchId, status, ...rest } = s;
-    setEditingShipment({ ...rest, id: '', trackingNumber: '', createdAt: '', updatedAt: '', status: 'received' } as any);
+    const { senderName, receiverName, itemDescription, weight, weightUnit, photoUrl, priorityLabels, totalAmount, paidAmount, balanceDue, destination, createdBy } = s; const rest = { senderName, receiverName, itemDescription, weight, weightUnit, photoUrl, priorityLabels, totalAmount, paidAmount, balanceDue, destination, createdBy };
+    setEditingShipment({ ...rest, id: '', trackingNumber: '', createdAt: '', updatedAt: '', status: 'received' } as Shipment);
   };
 
   if (editingShipment) {
@@ -171,7 +171,7 @@ function MyShipments() {
                 <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <input placeholder="Scan or type ID..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full h-14 pl-14 pr-6 bg-white border border-slate-200 rounded-2xl font-bold text-sm text-[#1A202C] focus:border-[#1B4332] outline-none transition-all shadow-sm" />
             </div>
-            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="h-14 bg-white border border-slate-200 rounded-2xl px-6 font-bold text-xs text-slate-500 uppercase tracking-widest outline-none focus:border-[#1B4332] transition-all">
+            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as 'all' | ShipmentStatus)} className="h-14 bg-white border border-slate-200 rounded-2xl px-6 font-bold text-xs text-slate-500 uppercase tracking-widest outline-none focus:border-[#1B4332] transition-all">
                 <option value="all">ALL PROTOCOLS</option>
                 <option value="received">RECEIVED</option>
                 <option value="awaiting_flight">AWAITING PACK</option>

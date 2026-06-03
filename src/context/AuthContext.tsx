@@ -119,7 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [resetInactivityTimer]);
 
-  const login = useCallback(async (email: string, password = 'Demo123!', _rememberMe = false) => {
+  const login = useCallback(async (email: string, password = 'Demo123!') => {
     try {
       setIsLoading(true);
       
