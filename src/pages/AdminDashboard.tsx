@@ -7,6 +7,8 @@ import StatusBadge from '@/components/StatusBadge';
 import DestinationBadge from '@/components/DestinationBadge';
 import PriorityChips from '@/components/PriorityChips';
 import StaffManagement from '@/pages/StaffManagement';
+import StaffActivityMonitor from '@/pages/StaffActivityMonitor';
+import GlobalActivityDashboard from '@/pages/GlobalActivityDashboard';
 import CreateShipment from '@/components/CreateShipment';
 import SackManager from '@/pages/SackManager';
 import GlobalSearch from '@/pages/GlobalSearch';
@@ -470,6 +472,8 @@ export default function AdminDashboard() {
             <Route path="/sacks" element={<SackManager />} />
             <Route path="/search" element={<GlobalSearch />} />
             <Route path="/staff" element={<StaffManagement />} />
+            <Route path="/staff/:id/activity" element={<StaffActivityMonitor />} />
+            <Route path="/activity" element={<GlobalActivityDashboard />} />
             <Route path="/alerts" element={<WeightAlerts />} />
             <Route path="/audit" element={<AuditLogs />} />
           </Routes>
