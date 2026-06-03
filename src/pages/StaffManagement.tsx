@@ -1,3 +1,4 @@
+import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 import { useData } from '@/context/DataContext';
 import {
@@ -12,6 +13,10 @@ export default function StaffManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
+  const [passwordMode, setPasswordMode] = useState<'auto' | 'manual'>('auto');
+  const [showPassword, setShowPassword] = useState(false);
+  const [successMode, setSuccessMode] = useState<'auto' | 'manual' | null>(null);
+
 
   const filteredStaff = staff.filter(s =>
     s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -28,11 +33,16 @@ export default function StaffManagement() {
   const handleAddStaff = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const password = generatePassword();
+    const password = passwordMode === 'auto' ? generatePassword() : formData.get('password') as string;
     const name = formData.get('name') as string;
     const email = formData.get('email') as string;
     const role = formData.get('role') as UserRole;
-    const branch = formData.get('branch') as any;
+    const branch = formData.get('branch') as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+    if (passwordMode === 'manual' && password.length < 6) {
+        toast.error('Password must be at least 6 characters');
+        return;
+    }
 
     try {
       const newStaff = {
@@ -44,9 +54,12 @@ export default function StaffManagement() {
         phone: formData.get('phone') as string,
       };
       await addStaff(newStaff, password);
-      setGeneratedPassword(password);
+      if (passwordMode === 'auto') {
+        setGeneratedPassword(password);
+      }
+      setSuccessMode(passwordMode);
       toast.success('Staff account created successfully');
-    } catch (err: any) {
+    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       console.error(err);
       toast.error(err.message || 'Failed to create staff');
     }
@@ -69,7 +82,7 @@ export default function StaffManagement() {
             <h1 className="text-2xl font-bold">Staff Directory</h1>
             <p className="text-sm text-gray-500">Manage access and permissions</p>
         </div>
-        <button onClick={() => { setGeneratedPassword(null); setIsAddModalOpen(true); }} className="h-11 px-6 bg-[#1B4332] text-white rounded-2xl flex items-center gap-2 shadow-lg hover:bg-[#1B4332]/90 transition-all">
+        <button onClick={() => { setGeneratedPassword(null); setSuccessMode(null); setPasswordMode('auto'); setIsAddModalOpen(true); }} className="h-11 px-6 bg-[#1B4332] text-white rounded-2xl flex items-center gap-2 shadow-lg hover:bg-[#1B4332]/90 transition-all">
           <UserPlus className="w-4 h-4" /> Add New Staff
         </button>
       </div>
@@ -140,17 +153,23 @@ export default function StaffManagement() {
                 </div>
                 <button onClick={() => setIsAddModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full"><XCircle className="w-6 h-6 text-gray-300" /></button>
             </div>
-             {generatedPassword ? (
+             {successMode ? (
                <div className="p-10 text-center space-y-8 animate-in zoom-in-95 duration-300">
                  <div className="p-6 bg-green-50 rounded-3xl inline-block"><Lock className="w-10 h-10 text-green-600" /></div>
                  <div className="space-y-2">
                     <p className="font-bold text-gray-900">Account Created Successfully!</p>
-                    <p className="text-xs text-gray-400">Copy this temporary password and share it securely. The employee will be forced to change it.</p>
+                    {successMode === 'auto' ? (
+                        <p className="text-xs text-gray-400">Copy this temporary password and share it securely. The employee will be forced to change it.</p>
+                    ) : (
+                        <p className="text-xs text-gray-400">The account has been created with your custom password. Share it securely with the employee.</p>
+                    )}
                  </div>
-                 <div className="bg-gray-100 p-6 rounded-2xl font-mono font-bold text-2xl tracking-widest text-[#1B4332] border-2 border-dashed border-gray-200 select-all">
-                    {generatedPassword}
-                 </div>
-                 <button onClick={() => setIsAddModalOpen(false)} className="w-full h-14 bg-[#1B4332] text-white font-bold rounded-2xl shadow-lg">Done, I've Copied It</button>
+                 {successMode === 'auto' && generatedPassword && (
+                     <div className="bg-gray-100 p-6 rounded-2xl font-mono font-bold text-2xl tracking-widest text-[#1B4332] border-2 border-dashed border-gray-200 select-all">
+                        {generatedPassword}
+                     </div>
+                 )}
+                 <button onClick={() => setIsAddModalOpen(false)} className="w-full h-14 bg-[#1B4332] text-white font-bold rounded-2xl shadow-lg">Done</button>
                </div>
              ) : (
                <form onSubmit={handleAddStaff} className="p-8 space-y-5">
@@ -162,6 +181,27 @@ export default function StaffManagement() {
                     <div className="space-y-1.5"><label className="text-[10px] font-bold uppercase text-gray-400 ml-1">Role</label><select name="role" className="w-full h-12 border-2 rounded-xl px-3 bg-white outline-none focus:border-[#1B4332]"><option value="cairo_staff">Cairo Staff</option><option value="kano_staff">Kano Staff</option><option value="abuja_staff">Abuja Staff</option><option value="admin">Administrator</option></select></div>
                     <div className="space-y-1.5"><label className="text-[10px] font-bold uppercase text-gray-400 ml-1">Branch</label><select name="branch" className="w-full h-12 border-2 rounded-xl px-3 bg-white outline-none focus:border-[#1B4332]"><option value="cairo">Cairo (Base)</option><option value="kano">Kano Branch</option><option value="abuja">Abuja Branch</option></select></div>
                  </div>
+
+                 <div className="space-y-3 pt-2">
+                    <label className="text-[10px] font-bold uppercase text-gray-400 ml-1">Password Generation</label>
+                    <div className="flex bg-gray-100 p-1 rounded-xl">
+                        <button type="button" onClick={() => setPasswordMode('auto')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-colors ${passwordMode === 'auto' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Auto-Generate</button>
+                        <button type="button" onClick={() => setPasswordMode('manual')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-colors ${passwordMode === 'manual' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Manual Entry</button>
+                    </div>
+                 </div>
+
+                 {passwordMode === 'manual' && (
+                    <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-200">
+                        <label className="text-[10px] font-bold uppercase text-gray-400 ml-1">Custom Password</label>
+                        <div className="relative">
+                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <input name="password" type={showPassword ? "text" : "password"} placeholder="Enter password (min 6 chars)" required className="w-full h-12 pl-11 pr-12 border-2 rounded-xl focus:border-[#1B4332] outline-none transition-colors" minLength={6} />
+                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                        </div>
+                    </div>
+                 )}
 
                  <button type="submit" className="w-full h-14 bg-[#1B4332] text-white font-bold rounded-2xl mt-4 shadow-xl hover:bg-[#1B4332]/90 transition-all transform active:scale-95">Create Staff Account</button>
                </form>
