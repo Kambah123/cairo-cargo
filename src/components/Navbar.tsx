@@ -36,7 +36,6 @@ export default function Navbar() {
       { label: 'Dashboard', href: '/admin' },
       { label: 'Shipments', href: '/admin/shipments' },
       { label: 'Sacks', href: '/admin/sacks' },
-      { label: 'Staff', href: '/admin/staff' },
       { label: 'Audit', href: '/admin/audit' },
     ],
   };
