@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useData } from '@/context/DataContext';
+import { useNavigate } from 'react-router-dom';
 import {
   UserPlus, Search,
   ToggleLeft, ToggleRight, XCircle, Shield, MapPin, Phone, Mail, User as UserIcon, Lock
@@ -9,6 +10,7 @@ import type { UserRole, User } from '@/types';
 
 export default function StaffManagement() {
   const { staff, addStaff, updateStaff } = useData();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
@@ -121,6 +123,10 @@ export default function StaffManagement() {
                                     {s.isActive ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
                                     {s.isActive ? 'Deactivate' : 'Activate'}
                                 </button>
+                                <button onClick={() => navigate(`/admin/staff/${s.id}/activity`)} className="ml-2 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-[#1B4332]/10 text-[#1B4332] hover:bg-[#1B4332] hover:text-white transition-all">
+                                    View Activity
+                                </button>
+
                             </td>
                         </tr>
                     ))}
