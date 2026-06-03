@@ -51,7 +51,7 @@ export default function BottomNav() {
   const items = roleNavItems[user.role] || [];
 
   return (
-    <div className="md:hidden fixed bottom-6 left-6 right-6 h-20 bg-[#161B22]/80 backdrop-blur-xl border border-white/10 rounded-[2.5rem] px-6 z-50 flex items-center justify-between shadow-2xl overflow-hidden">
+    <div className="md:hidden fixed bottom-6 left-6 right-6 h-20 bg-white/90 backdrop-blur-xl border border-slate-100 rounded-[2.5rem] px-6 z-50 flex items-center justify-between shadow-2xl overflow-hidden">
       {items.map((item) => {
         const isActive = location.pathname === item.href || (item.href !== '/' && location.pathname.startsWith(item.href));
         return (
@@ -60,14 +60,14 @@ export default function BottomNav() {
             to={item.href}
             className={`flex flex-col items-center gap-1.5 p-2 transition-all duration-500 relative ${
               isActive
-                ? 'text-white scale-110'
-                : 'text-slate-500 hover:text-slate-300'
+                ? 'text-[#1B4332] scale-110'
+                : 'text-slate-400 hover:text-slate-600'
             }`}
           >
             {isActive && (
-               <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
+               <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-[#1B4332] rounded-full shadow-[0_0_8px_rgba(27,67,50,0.8)]" />
             )}
-            <item.icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5px] text-blue-500' : 'stroke-[1.5px]'}`} />
+            <item.icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5px] text-[#1B4332]' : 'stroke-[1.5px]'}`} />
             <span className="text-[8px] font-black uppercase tracking-[0.2em]">{item.label}</span>
           </Link>
         );

@@ -24,7 +24,7 @@ This document serves as the complete UI/UX design blueprint for the Cairo → Ni
 - Fast visual scanning
 
 ## 4. COLOR SYSTEM
-- Primary Theme Color: Dark Navy Blue
+- Primary Theme Color: Dark Green (#1B4332)
 - Secondary Theme: White / Light Gray
 - Accent Color: Cyan or Electric Blue
 - Success Status: Green
@@ -160,8 +160,8 @@ This document serves as the complete UI/UX design blueprint for the Cairo → Ni
 - Delivery confirmation messages
 
 ## 23. DARK MODE RECOMMENDATION
-- Dark mode preferred for warehouse/cargo environments.
-- Dark background with colored cards and chips recommended.
+- Light mode (White/Slate) preferred for warehouse/cargo environments.
+- White background with green accents and colored chips and chips recommended.
 
 ## 24. OFFLINE MODE REQUIREMENTS
 - Offline queue indicator

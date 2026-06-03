@@ -144,7 +144,7 @@ export default function BatchManager() {
                     </button>
                   )}
                   {selectedBatch.status === 'ready_for_flight' && user?.role === 'admin' && (
-                    <button onClick={() => updateBatchStatus(selectedBatch.id, 'shipped')} className="h-10 px-4 bg-blue-600 text-white text-sm font-bold rounded-xl flex items-center gap-2">
+                    <button onClick={() => updateBatchStatus(selectedBatch.id, 'shipped')} className="h-10 px-4 bg-#1B4332 text-white text-sm font-bold rounded-xl flex items-center gap-2">
                       <PlaneTakeoff className="w-4 h-4" /> Mark as Shipped
                     </button>
                   )}
