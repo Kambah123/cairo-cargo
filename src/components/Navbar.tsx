@@ -154,31 +154,27 @@ export default function Navbar() {
                 <X className="w-5 h-5 text-slate-400" />
               </button>
             </div>
-            <div className="p-4 space-y-2">
+            <div className="p-4 flex flex-col gap-2">
               {links.map((link) => (
                 <Link
                   key={link.label + link.href}
                   to={link.href}
                   onClick={() => setMobileOpen(false)}
-                  className={`flex items-center px-5 py-4 text-xs font-black uppercase tracking-[0.2em] rounded-2xl transition-all ${
-                    location.pathname === link.href
-                      ? 'text-white bg-[#1B4332] shadow-lg shadow-[#1B4332]/20'
-                      : 'text-slate-400 hover:text-[#1B4332] hover:bg-slate-50'
-                  }`}
+                  className="flex items-center px-5 py-3 text-xs font-black uppercase tracking-[0.2em] rounded-2xl transition-all text-slate-500 hover:text-[#1B4332] hover:bg-slate-50"
                 >
                   {link.label}
                 </Link>
               ))}
 
               {!isAuthenticated && isPublicPage && (
-                <div className="pt-4 mt-2 border-t border-slate-100">
+                <div className="pt-4 mt-2 border-t border-slate-100 flex flex-col gap-2">
                   <Link
                     to="/login"
                     onClick={() => setMobileOpen(false)}
-                    className="flex items-center justify-between px-5 py-4 text-xs font-black uppercase tracking-[0.2em] rounded-2xl transition-all bg-[#1B4332] text-white hover:bg-[#2D6A4F] shadow-lg shadow-[#1B4332]/20"
+                    className="flex items-center justify-between px-6 py-4 text-xs font-black uppercase tracking-[0.2em] rounded-2xl transition-all bg-[#1B4332] text-white hover:bg-[#2D6A4F] shadow-lg shadow-[#1B4332]/20"
                   >
                     <span>Staff Access</span>
-                    <Lock className="w-4 h-4" />
+                    <Lock className="w-5 h-5" />
                   </Link>
                 </div>
               )}
