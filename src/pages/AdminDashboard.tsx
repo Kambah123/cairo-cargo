@@ -33,6 +33,7 @@ function Sidebar() {
     { label: 'Master Intel', icon: Search, path: '/admin/search' },
     { label: 'Security Alerts', icon: ShieldAlert, path: '/admin/alerts', badge: pendingAlerts },
     { label: 'Staff Directory', icon: Users, path: '/admin/staff' },
+    { label: 'Global Activity', icon: Activity, path: '/admin/activity' },
     { label: 'Immutable Audit', icon: History, path: '/admin/audit' },
   ];
   return (
