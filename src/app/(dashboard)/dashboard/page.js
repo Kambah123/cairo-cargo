@@ -7,7 +7,7 @@ import { Box, Plus, ScanLine, ArrowRight, Clock, Package, Truck, TrendingUp, Loa
 import { Button } from "@/components/ui/Button"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { getRecentShipments, getOpenSacks } from "@/lib/supabase/api"
+import { getRecentShipments, getOpenSacks, getDashboardStats } from "@/lib/supabase/api"
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -23,23 +23,18 @@ export default function DashboardPage() {
   React.useEffect(() => {
     async function loadData() {
       try {
-        const [shipments, sacks] = await Promise.all([
+        const [shipments, realStats] = await Promise.all([
           getRecentShipments(),
-          getOpenSacks()
+          getDashboardStats()
         ])
 
         setRecentShipments(shipments || [])
 
-        // Calculate simple stats based on recent data for MVP
-        const todayIntake = shipments.filter(s => new Date(s.created_at).toDateString() === new Date().toDateString()).length
-        const inTransit = shipments.filter(s => ['shipped', 'arrived'].includes(s.status)).length
-        const pendingPickup = shipments.filter(s => s.status === 'ready_for_pickup').length
-
         setStats([
-          { label: "Today's Intake", value: todayIntake.toString(), change: null, icon: Package, color: "text-accent" },
-          { label: "In Transit", value: inTransit.toString(), change: null, icon: Truck, color: "text-[#a78bfa]" },
-          { label: "Pending Pickup", value: pendingPickup.toString(), change: null, icon: Clock, color: "text-warning" },
-          { label: "Active Sacks", value: (sacks?.length || 0).toString(), change: null, icon: Box, color: "text-info" },
+          { label: "Today's Intake", value: realStats.todayIntake.toString(), change: null, icon: Package, color: "text-accent" },
+          { label: "In Transit", value: realStats.inTransit.toString(), change: null, icon: Truck, color: "text-[#a78bfa]" },
+          { label: "Pending Pickup", value: realStats.pendingPickup.toString(), change: null, icon: Clock, color: "text-warning" },
+          { label: "Active Sacks", value: realStats.activeSacks.toString(), change: null, icon: Box, color: "text-info" },
         ])
       } catch (error) {
         console.error("Failed to load dashboard data:", error)

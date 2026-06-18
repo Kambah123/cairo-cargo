@@ -275,3 +275,47 @@ export async function uploadParcelPhoto(file) {
     
   return publicUrl
 }
+
+// DASHBOARD STATS
+export async function getDashboardStats() {
+  const supabase = createClient()
+  const profile = await getCurrentUserProfile()
+  
+  // Create base queries with correct exact matching for accurate counts
+  let shipmentsQuery = supabase.from('shipments').select('*', { count: 'exact', head: true })
+  let todayIntakeQuery = supabase.from('shipments').select('*', { count: 'exact', head: true }).gte('created_at', new Date().toISOString().split('T')[0])
+  let transitQuery = supabase.from('shipments').select('*', { count: 'exact', head: true }).in('status', ['shipped', 'arrived'])
+  let pendingQuery = supabase.from('shipments').select('*', { count: 'exact', head: true }).eq('status', 'ready_for_pickup')
+  let activeSacksQuery = supabase.from('sacks').select('*', { count: 'exact', head: true }).eq('status', 'open')
+
+  // Apply role filtering if not admin
+  if (profile && profile.role !== 'admin') {
+    shipmentsQuery = shipmentsQuery.eq('created_by', profile.id)
+    todayIntakeQuery = todayIntakeQuery.eq('created_by', profile.id)
+    transitQuery = transitQuery.eq('created_by', profile.id)
+    pendingQuery = pendingQuery.eq('created_by', profile.id)
+    activeSacksQuery = activeSacksQuery.eq('created_by', profile.id)
+  }
+
+  // Execute all count queries in parallel
+  const [
+    { count: totalIntake },
+    { count: todayIntake },
+    { count: inTransit },
+    { count: pendingPickup },
+    { count: activeSacks }
+  ] = await Promise.all([
+    shipmentsQuery,
+    todayIntakeQuery,
+    transitQuery,
+    pendingQuery,
+    activeSacksQuery
+  ])
+
+  return {
+    todayIntake: todayIntake || 0,
+    inTransit: inTransit || 0,
+    pendingPickup: pendingPickup || 0,
+    activeSacks: activeSacks || 0
+  }
+}

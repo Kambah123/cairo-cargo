@@ -3,7 +3,7 @@
 import * as React from "react"
 import { Card, CardContent } from "@/components/ui/Card"
 import { StatusChip } from "@/components/ui/StatusChip"
-import { Box, Plus, ScanLine, ArrowRight, Lock, Truck, Loader2 } from "lucide-react"
+import { Box, Plus, ScanLine, ArrowRight, Lock, Truck, Loader2, X } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -15,6 +15,8 @@ export default function SacksPage() {
   const [closedSacks, setClosedSacks] = React.useState([])
   const [loading, setLoading] = React.useState(true)
   const [isCreating, setIsCreating] = React.useState(false)
+  const [showCreateModal, setShowCreateModal] = React.useState(false)
+  const [newSackDestination, setNewSackDestination] = React.useState("")
 
   const loadData = async () => {
     try {
@@ -35,13 +37,14 @@ export default function SacksPage() {
     loadData()
   }, [])
 
-  const handleCreateSack = async () => {
-    const dest = window.prompt("Enter destination for new sack (e.g. Kano, Abuja):", "Kano")
-    if (!dest) return
+  const submitCreateSack = async (e) => {
+    e.preventDefault()
+    if (!newSackDestination) return
     setIsCreating(true)
     try {
-      const newSack = await createSack(dest)
-      router.push(`/sacks/${newSack.sack_number}`)
+      const newSack = await createSack(newSackDestination)
+      setShowCreateModal(false)
+      router.push(`/sacks/${newSack.sack_id}`)
     } catch (error) {
       console.error("Failed to create sack", error)
       alert("Failed to create sack")
@@ -58,8 +61,8 @@ export default function SacksPage() {
           <h1 className="text-2xl font-bold text-fg tracking-tight">Sack Management</h1>
           <p className="text-sm text-fg-muted mt-1">Consolidate parcels into transport sacks</p>
         </div>
-        <Button onClick={handleCreateSack} disabled={isCreating} className="gap-2">
-          {isCreating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+        <Button onClick={() => setShowCreateModal(true)} disabled={isCreating} className="gap-2">
+          <Plus className="w-4 h-4" />
           New Sack
         </Button>
       </div>
@@ -178,6 +181,38 @@ export default function SacksPage() {
             )}
           </section>
         </>
+      )}
+
+      {/* Create Sack Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-surface-0 border border-surface-3 w-full max-w-sm rounded-[var(--radius-lg)] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-5 border-b border-surface-3/60 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-fg">Create New Sack</h2>
+              <button onClick={() => setShowCreateModal(false)} className="text-fg-faint hover:text-fg transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={submitCreateSack} className="p-5 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-fg-muted uppercase tracking-wider">Destination Hub</label>
+                <select required value={newSackDestination} onChange={(e) => setNewSackDestination(e.target.value)} className="w-full h-11 px-3.5 rounded-[var(--radius-md)] border border-surface-3 bg-surface-1 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all">
+                  <option value="">Select destination</option>
+                  <option value="kano">Kano (KAN)</option>
+                  <option value="abuja">Abuja (ABJ)</option>
+                </select>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <Button type="button" variant="outline" className="flex-1" onClick={() => setShowCreateModal(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={!newSackDestination || isCreating} className="flex-1 gap-2">
+                  {isCreating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Create"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   )
