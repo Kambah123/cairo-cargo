@@ -1,0 +1,120 @@
+@import "tailwindcss";
+
+@theme {
+  /* ── Surface System ── */
+  --color-bg: #06090f;
+  --color-surface-0: #0c1219;
+  --color-surface-1: #111923;
+  --color-surface-2: #18212e;
+  --color-surface-3: #1e2838;
+
+  /* ── Foreground ── */
+  --color-fg: #e8edf5;
+  --color-fg-muted: #8494a7;
+  --color-fg-faint: #4a5568;
+
+  /* ── Accent: Electric Teal ── */
+  --color-accent: #2dd4bf;
+  --color-accent-glow: #2dd4bf33;
+  --color-accent-muted: #2dd4bf1a;
+
+  /* ── Semantic Colors ── */
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-error: #f87171;
+  --color-info: #60a5fa;
+
+  /* ── Status System ── */
+  --color-status-delivered: #34d399;
+  --color-status-awaiting: #fbbf24;
+  --color-status-arrived: #60a5fa;
+  --color-status-shipped: #a78bfa;
+  --color-status-hold: #f87171;
+  --color-status-received: #2dd4bf;
+
+  /* ── Destination Hues ── */
+  --color-dest-kano: #34d399;
+  --color-dest-abuja: #60a5fa;
+  --color-dest-lagos: #f87171;
+
+  /* ── Radii ── */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+}
+
+@layer base {
+  *, ::after, ::before, ::backdrop, ::file-selector-button {
+    border-color: var(--color-surface-3);
+  }
+
+  :root {
+    color-scheme: dark;
+  }
+
+  ::selection {
+    background: var(--color-accent);
+    color: var(--color-bg);
+  }
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-fg);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Custom Scrollbar ─── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface-3);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-fg-faint);
+}
+
+/* ─── Utilities ─── */
+@layer utilities {
+  .text-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .glow-accent {
+    box-shadow: 0 0 20px var(--color-accent-glow), 0 0 60px var(--color-accent-glow);
+  }
+
+  .border-subtle {
+    border-color: color-mix(in srgb, var(--color-fg) 8%, transparent);
+  }
+
+  .surface-glass {
+    background: color-mix(in srgb, var(--color-surface-1) 80%, transparent);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+  }
+}
+
+/* ─── Fade-in keyframe ─── */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-up {
+  animation: fade-up 0.5s ease-out both;
+}
